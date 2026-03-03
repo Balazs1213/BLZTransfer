@@ -1,0 +1,40 @@
+A Projekt Munkaterv Módszertani Indoklása és Szakmai Kifejtése
+(Kalkulált időkeret: egyenletes, heti ~5 munkaóra)
+
+A bemutatott 11 hetes fejlesztési ütemterv (2-12. hét) az "API-first" (Backend-first) megközelítésre és a kockázatalapú szoftvertervezésre (Risk-driven Development) épül.
+A feladatok elosztásának fő célja, hogy a munkafolyamat egyenletes, heti 5 órás terhelést jelentsen, elkerülve a félév végi torlódást.
+
+1. Tervezés, Specifikáció és Kockázatelemzés (2. Hét)
+Szerepe: A projekt alapozása és az architekturális zsákutcák elkerülése.
+Miért ekkor: Mielőtt bármilyen kódolás megkezdődne, pontosan fel kell mérni az AWS Learner Lab környezet szigorú korlátait (pl. iam:CreateRole hiánya, Cognito hiánya). 
+A vizuális architektúra és az UML modellek (Use Case) ezen a héten történő véglegesítése biztosítja, hogy a későbbi hetekben már tisztán a megvalósításra fókuszálhassunk.
+
+2. Backend-first Architektúra (3-4. Hét)
+Szerepe: A stabil adatréteg és az API végpontok felállítása a felhőben.
+Miért ekkor: A vizuális (kattintgatós) AWS konzol használatával a S3 és DynamoDB erőforrások felhúzása viszonylag gyors (3. hét), így már ekkor megkezdődhet a frontend (React) technológiák elméleti alapozása. 
+A 4. héten az API Gateway és a feltöltési logika (Presigner Lambda) izoláltan, vizuális felület nélkül, Postman segítségével tesztelhető. Ezzel kizárjuk, hogy a későbbi szakaszokban a backend és a frontend hibái összekeveredjenek.
+
+3. Intelligens Háttérfeldolgozás - Két hétre bontva (5-6. Hét)
+Szerepe: A rendszer "agyának", a Serverless állapotgépnek (Step Functions) a megépítése.
+Miért ekkor: Mivel ez a folyamat integrálja a ClamAV vírusirtót és az AI szolgáltatásokat (Rekognition, Textract), komplexitása magas.
+Hogy tartható legyen a heti ~5 órás keret, a folyamatot kettébontottuk. Az 5. hét az alapvető folyamatirányításé és a biztonságé, a 6. hét az adatkinyerésé. Így van idő alaposan tesztelni a felhős komponensek közötti adatátvitelt.
+
+4. Kliensalkalmazás és Felhasználói Felület (7-8. Hét)
+Szerepe: A React alapú SPA (Single Page Application) lefejlesztése és integrálása.
+Miért ekkor: A frontend fejlesztés szándékosan a projekt második felére került. Egyrészt ekkorra a fejlesztő már elegendő elméleti tudást szerzett (a korábbi hetek párhuzamos tanulása révén), 
+másrészt egy 100%-osan működő, tesztelt felhős háttérrendszerhez kell csak csatlakoznia. A UI kialakításának (7. hét) és a hálózati integrációnak/logikának (8. hét) a szétválasztása tovább csökkenti a kognitív terhelést.
+
+5. Rendszerintegráció és Tesztelés (9. Hét)
+Szerepe: Minőségbiztosítás (QA) és az üzleti logika validálása.
+Miért ekkor: A rendszer összeállt. Ezen a héten a fókusz kizárólag a különböző felhasználói szerepkörök (Vendég vs. Regisztrált), a fájlméret-korlátok, 
+és az atomi letöltésszámláló "End-to-End" (E2E) tesztelésén, valamint a fellépő hibák (Bugok) javításán van. Új funkció már nem készül.
+
+6. Dokumentáció és Leadás (10-11. Hét)
+Szerepe: A hivatalos akadémiai és szakmai követelmények teljesítése.
+Miért ekkor: Egy minőségi, mérnöki kompromisszumokat (Trade-off) indokló dokumentáció megírása időigényes. 
+A 10. héten a nyers szövegezés és az ábrák beillesztése történik, míg a 11. hét a stilisztikai csiszolásé, a kódkommentek ellenőrzéséé és a projekt hivatalos leadásáé. Így a leadás stresszmentes marad.
+
+7. Prezentáció és Védés (12. Hét)
+Szerepe: A vizsgahelyzet szimulációja és a kommunikációs felkészülés.
+Miért ekkor: A munka technikai és adminisztratív része lezárult. Ezen a héten a teljes 5 órás időkeret a diák összeállítására, az élő demó (Live Demo) elpróbálására, 
+valamint a bizottság várható (pl. architektúrára vagy jogosultságkezelésre vonatkozó) kérdéseire adott szakmai válaszok begyakorlására fordítható.

@@ -1,0 +1,18 @@
+1. A Szervermentes (Serverless) Paradigma kiemelése:
+
+"Tanár úr / Konzulens úr, a rendszer fő tervezési alapelve a hálózati szűk keresztmetszetek elkerülése volt. Ahogy a vastag nyilak is mutatják (4. és 13. lépés), a nagyméretű fájlok fel- és letöltése Presigned URL-ekkel közvetlenül az S3-ba történik, így a számítási réteg (a Lambda) egyáltalán nem terhelődik a gigabájtos adatfolyamokkal."
+
+2. A Bonyolítás (A TMIT-es "Okos" rész) bemutatása:
+
+"A puszta fájltároláson túl a rendszer 'agya' a középső sávban látható aszinkron feldolgozó pipeline. Egy S3 esemény indítja az AWS Step Functions állapotgépet, ami párhuzamosan végeztet el egy ClamAV vírusirtást, illetve az Amazon Rekognition és Textract segítségével intelligens adatkinyerést a fájlokból."
+
+3. A Tranzakció-biztonság (Versenyhelyzetek kezelése):
+
+"A letöltési oldalon kiemelt figyelmet fordítottam az adatintegritásra. A Gatekeeper Lambda és a DynamoDB közötti kétirányú nyíl (11. lépés) egy atomi tranzakciót (Conditional Update) jelöl. Ez biztosítja, hogy ha egy egyszer letölthető fájlra ketten kattintanak rá ezredmásodpercre pontosan egyszerre, a rendszer akkor is csak az egyiküket engedi át."
+
+4. A Learner Lab korlátok elegáns kezelése:
+
+"Végül pedig az egész architektúrát úgy optimalizáltam, hogy tökéletesen illeszkedjen az egyetemi Learner Lab korlátozásaihoz: kiküszöböltem a Cognito-t, és a tervezésnél figyelembe vettem, hogy minden számítási egység a kötelező 'LabRole' IAM profillal tudjon csak futni."
+
+
+Itt látható a bal oldalon, ahogy az 1-es Kliens feltölti a fájlt a rendszerbe. Miután a felhő feldolgozta (középső sáv), a felhasználó kap egy generált linket és QR kódot, amit külső csatornán – a szaggatott nyíl mentén – átküld a 2-es Kliensnek. A 2-es Kliens ezen a linken keresztül indítja el a letöltési kérést a 10-es nyílnál."
