@@ -1,0 +1,22 @@
+.picker {
+  text-align: center;
+  border: 2px dashed #d1d5db; /* Szaggatott vonal, mint a profi feltöltőknél */
+  background: #f9fafb;
+}
+
+.preview {
+  margin-bottom: 1rem;
+  color: #4b5563;
+}
+
+.uploadBtn {
+  margin-top: 1rem;
+  background-color: #059669; /* Zöld szín a feltöltésnek */
+  border-color: #059669;
+  display: block;
+  width: 100%;
+}
+
+.uploadBtn:hover {
+  background-color: #047857;
+}

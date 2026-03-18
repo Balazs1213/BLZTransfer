@@ -1,0 +1,33 @@
+.auth {
+  text-align: center;
+}
+
+.auth h1 {
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.auth p {
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.guestBtn {
+  background: transparent;
+  color: #1f2937;
+}
+
+.guestBtn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.loginBtn {
+  width: 100%;
+}
