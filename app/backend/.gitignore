@@ -1,0 +1,29 @@
+## .NET Core / C# specifikus ignorálások ##
+
+# Build kimenetek
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bin/
+obj/
+
+# Felhasználó-specifikus editor beállítások (VS, VS Code)
+.vs/
+.vscode/
+*.user
+*.userossc
+*.suo
+*.userprefs
+*.sln.docstates
+
+# Roslyn analyzer cache
+*.bcb
+
+# .NET Tools és cache
+.dotnet/
+.tools/
+*.DotSettings.user
+
+# Ha használsz appsettings.json titkokat, azokat is érdemes itt kizárni (később):
+# appsettings.Development.json
