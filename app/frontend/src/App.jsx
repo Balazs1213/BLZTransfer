@@ -1,8 +1,7 @@
 // import reactLogo from "./assets/react.svg";
 // import viteLogo from "/vite.svg";
 import "./App.css";
-import S3CorsTest from "./components/dev-tests/S3CorsTest";
-import GuestUpload from "./components/GuestUpload";
+
 import AuthHome from "./components/Auth/AuthHome/AuthHome";
 import FilePicker from "./components/Upload/FilePicker/FilePicker";
 import Button from "./components/UI/Buttons/Button";

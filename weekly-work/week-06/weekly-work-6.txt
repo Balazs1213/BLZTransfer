@@ -1,0 +1,1 @@
+Step function fertőzőtt ágán a lambdát frísítettem, hogy a dynamoddb-ben átírja a fertőzőtt fájlállapotát, infected-re.
