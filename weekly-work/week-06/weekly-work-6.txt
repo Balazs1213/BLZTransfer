@@ -6,3 +6,16 @@
         -app\frontend\src\api => fileApi.js
         -app\frontend\src => App.jsx
         -létrehoztam a CheckFileStatus lambát, app\backend\src\BLZ.CheckFileStatus => Function.cs
+-file-mover lambda javítása, hogy az ékezetes és space karakterrel rendelkező nevű fájlokat is elfogadja a rendszer
+-felhasználói autentikáció és a személyre szabott feájlkezelés implelementálása:
+        -AWS cognitoban létrehoztam egy user poolt
+        -integráltam a aws-ampify könyvtárat és létrehoztam a src/config/aws-config.js konfigurációs fájlt
+        -App.jsx-ben bevezettem a currentUsername állapotot, amely alapértelmezetten "guest", de sikeres bejelentkezés után felveszi a felhasználó egyedi azonosítóját.
+        -AuthHome komponens fejlesztése: Megírtam a regisztrációs (Sign Up), email-visszaigazoló (OTP) és bejelentkezési (Login) logikát egy belső állapotgép segítségével.     
+        -Frissítettem a Blz.GetPresignedUrl Lambdát.
+        -Bevezettem a dinamikus mappakezelést: a fájlok az S3-ban és a DynamoDB-ben már nem fixen a "guest", hanem a bejelentkezett felhasználó saját neve alatti mappába kerülnek.
+        -Beállítottam a Mapping Template-et $input.json('$') (Passthrough) módra, hogy az adatok módosítás nélkül jussanak el a Lambdához.
+        -Kikapcsoltam a Request Validator-t és a Request Body Model-t, hogy az API ne utasítsa el az új userId mezőt tartalmazó kéréseket.
+        -Konfiguráltam a Gateway Responses (Default 4XX/5XX) hibaágakat a CORS fejlécekkel, így a hálózati hibák nem maszkolják el a valódi API válaszokat.
+
+        

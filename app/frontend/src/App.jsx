@@ -3,8 +3,6 @@ import AuthHome from "./components/Auth/AuthHome/AuthHome";
 import FilePicker from "./components/Upload/FilePicker/FilePicker";
 import Button from "./components/UI/Buttons/Button";
 import { useState } from "react";
-
-// Itt importáljuk az előbb létrehozott API hívásunkat!
 import { checkFileStatus } from "./api/fileApi";
 
 function App() {
@@ -12,34 +10,34 @@ function App() {
   const [userType, setUserType] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // --- ÚJ STATE-EK A PROGRESS BAR-HOZ ---
+  // Itt tároljuk a bejelentkezett felhasználó nevét!
+  const [currentUsername, setCurrentUsername] = useState("guest");
+
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
-  const [currentStatus, setCurrentStatus] = useState("Idle"); // "Idle", "Uploading", "Scanning", "Clean", "Infected", "Error"
+  const [currentStatus, setCurrentStatus] = useState("Idle");
 
-  const loginHandler = () => {
+  const loginHandler = (username) => {
     setUserType("user");
+    setCurrentUsername(username); // Eltesszük a nevet a memóriába
     setIsAuthorized(true);
   };
 
   const guestHandler = () => {
     setUserType("guest");
+    setCurrentUsername("guest");
     setIsAuthorized(true);
   };
 
   const fileSelectHandler = (file) => {
     setSelectedFile(file);
-    console.log("File selected in App:", file.name);
-    // Visszaállítjuk a csíkot, ha új fájlt választ
     setProgress(0);
     setStatusText("");
     setCurrentStatus("Idle");
   };
 
   const uploadHandler = async (file) => {
-    console.log("Starting upload process for:", file.name);
-
     setIsUploading(true);
     setProgress(10);
     setCurrentStatus("Uploading");
@@ -49,10 +47,14 @@ function App() {
       "https://h4g8mvrgwd.execute-api.us-east-1.amazonaws.com/dev/get-upload-link";
 
     try {
-      console.log("1. Requesting Pre-signed URL from API...");
       const apiResponse = await fetch(API_ENDPOINT, {
         method: "POST",
-        body: JSON.stringify({ fileName: file.name, fileSize: file.size }),
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          UserId: currentUsername, 
+          userId: currentUsername, 
+        }),
         headers: { "Content-Type": "application/json" },
       });
 
@@ -65,7 +67,6 @@ function App() {
       setProgress(30);
       setStatusText("Uploading to AWS S3...");
 
-      console.log("3. Starting direct S3 upload...");
       const s3Response = await fetch(uploadUrl, {
         method: "PUT",
         body: file,
@@ -81,10 +82,17 @@ function App() {
       let pollingStatus = "Scanning";
       let fakeProgress = 50;
 
+      // =====================================
+      // POLLING: A vírusvizsgálat lekérdezése
+      // =====================================
       while (pollingStatus === "Scanning" || pollingStatus === "NotFound") {
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        pollingStatus = await checkFileStatus(generatedFileName, userType);
+        // Itt most már garantáltan a helyes névvel (currentUsername) kérdezünk rá!
+        pollingStatus = await checkFileStatus(
+          generatedFileName,
+          currentUsername,
+        );
 
         if (pollingStatus === "Scanning" && fakeProgress < 90) {
           fakeProgress += 5;
@@ -130,7 +138,6 @@ function App() {
               : "Secure User Dashboard"}
           </h2>
 
-          {/* Átadjuk az új propokat a FilePicker-nek */}
           <FilePicker
             onFileSelect={fileSelectHandler}
             isUploading={isUploading}
@@ -139,7 +146,6 @@ function App() {
             currentStatus={currentStatus}
           />
 
-          {/* Gomb megjelenítése, de elrejtjük / letiltjuk ha épp feltölt! */}
           {selectedFile && !isUploading && progress === 0 && (
             <div style={{ marginTop: "1rem" }}>
               <p
