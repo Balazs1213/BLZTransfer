@@ -1,1 +1,8 @@
-Step function fertőzőtt ágán a lambdát frísítettem, hogy a dynamoddb-ben átírja a fertőzőtt fájlállapotát, infected-re.
+-Step function fertőzőtt ágán a lambdát frísítettem, hogy a dynamoddb-ben átírja a fertőzőtt fájlállapotát, infected-re.
+-Windows defenderbeállítása, hogy a megfelelő mappát ne vizsgálja ezáltal könnyen tudok tesztelni az vírusos (EICAR) fájllal.
+-Progress bar elkészítése a fájl feltöltéshez ehhez a következő fájlokat módosítottam:
+        -app\frontend\src\components\Upload\FilePicker => FilePicker.jsx
+        -app\frontend\src\components\UI\Feedback\ProgressBar => ProgressBar.jsx
+        -app\frontend\src\api => fileApi.js
+        -app\frontend\src => App.jsx
+        -létrehoztam a CheckFileStatus lambát, app\backend\src\BLZ.CheckFileStatus => Function.cs
