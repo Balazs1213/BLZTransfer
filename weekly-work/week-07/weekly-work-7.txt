@@ -1,0 +1,3 @@
+-Elkészítettem a Backend utolsó megvalósítandó lépését a textract szolgáltatás bevezetését. 
+    -Ehhez megváltoztattam a ste fucntion és bevezettem még egy elágázást Analyze Document néven.
+    -Ebbe belekötöttem a :NEt 10 C#-ban létrehozott lambdámat, melynek a neve blz-textract-analyzer.

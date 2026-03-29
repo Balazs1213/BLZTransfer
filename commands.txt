@@ -1,0 +1,2 @@
+AWS creddentials megynitása:
+code "C:\Users\User\.aws\credentials"

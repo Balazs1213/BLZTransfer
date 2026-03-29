@@ -1,4 +1,4 @@
--Step function fertőzőtt ágán a lambdát frísítettem, hogy a dynamoddb-ben átírja a fertőzőtt fájlállapotát, infected-re.
+-Step function fertőzőtt ágán a lambdát frísítettem, hogy a dynamodb-ben átírja a fertőzőtt fájlállapotát, infected-re.
 -Windows defenderbeállítása, hogy a megfelelő mappát ne vizsgálja ezáltal könnyen tudok tesztelni az vírusos (EICAR) fájllal.
 -Progress bar elkészítése a fájl feltöltéshez ehhez a következő fájlokat módosítottam:
         -app\frontend\src\components\Upload\FilePicker => FilePicker.jsx
@@ -17,5 +17,9 @@
         -Beállítottam a Mapping Template-et $input.json('$') (Passthrough) módra, hogy az adatok módosítás nélkül jussanak el a Lambdához.
         -Kikapcsoltam a Request Validator-t és a Request Body Model-t, hogy az API ne utasítsa el az új userId mezőt tartalmazó kéréseket.
         -Konfiguráltam a Gateway Responses (Default 4XX/5XX) hibaágakat a CORS fejlécekkel, így a hálózati hibák nem maszkolják el a valódi API válaszokat.
+-Rekognition bevezetése:
+        -blz-file-classifier lambda létrehozása, amely segít felcímkézni az egyes fájloakt, IMAGE, DOCUMENT, OTHER
+        -blz-rekognition-analyzer: ez a képelemező logika a DetectLabelsCommand metódust használja, kinyeri a top 5 legalább 75%-os pontosságú címkét a képből, és frissíti a dynamoDB aiLabels attribútumát
+        -kibővítettem a stepfunctionst
 
-        
+
