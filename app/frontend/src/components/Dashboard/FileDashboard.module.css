@@ -239,6 +239,31 @@
   cursor: not-allowed;
 }
 
+.copyBtn {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.copyBtn:hover {
+  background: #dbeafe;
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.22);
+}
+
+.copyBtn:active {
+  transform: scale(0.98);
+}
+
 .actionBtn:hover {
   background: #ecfeff;
   border-color: #67e8f9;
@@ -286,6 +311,25 @@
   color: #0f172a;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.copiedText {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #059669;
+  font-weight: 600;
+  animation: copiedPulse 0.35s ease;
+}
+
+@keyframes copiedPulse {
+  from {
+    opacity: 0.4;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .urlWrap {

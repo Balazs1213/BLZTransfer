@@ -46,6 +46,7 @@ export const getDownloadUrl = async (
   fileName,
   userId = "guest",
   expiresInMinutes = 5,
+  maxDownloads = 1,
 ) => {
   if (!fileName || typeof fileName !== "string") {
     throw new Error("fileName is required");
@@ -54,19 +55,20 @@ export const getDownloadUrl = async (
   const safeUserId =
     userId && String(userId).trim() ? String(userId).trim() : "guest";
   const safeExpires = Math.max(1, Number(expiresInMinutes) || 5);
+  const safeMaxDownloads = Math.max(1, Number(maxDownloads) || 1);
+  const downloadGeneratorUrl =
+    "https://41tjtywnd9.execute-api.us-east-1.amazonaws.com/default/blz-get-download-url";
 
-  const response = await fetch(
-    "https://41tjtywnd9.execute-api.us-east-1.amazonaws.com/default/blz-get-download-url",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileName,
-        userId: safeUserId,
-        expiresInMinutes: safeExpires,
-      }),
-    },
-  );
+  const response = await fetch(downloadGeneratorUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName,
+      userId: safeUserId,
+      expiresInMinutes: safeExpires,
+      maxDownloads: safeMaxDownloads,
+    }),
+  });
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

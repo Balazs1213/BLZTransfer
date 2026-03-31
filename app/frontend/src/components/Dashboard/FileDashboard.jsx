@@ -59,15 +59,20 @@ const formatRemaining = (remainingMs) => {
 };
 
 const FileDashboard = ({ userId = "guest", apiUrl }) => {
+  const executeDownloadBaseUrl =
+    "https://h8sikvnc4a.execute-api.us-east-1.amazonaws.com/default/blz-execute-download";
+
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(5);
+  const [maxDownloads, setMaxDownloads] = useState(1);
   const [linkStates, setLinkStates] = useState({});
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isGenerating, setIsGenerating] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState("");
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -112,8 +117,9 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
     };
   }, [apiUrl, userId]);
 
-  const handleGenerate = async (file, type, durationMinutes) => {
+  const handleGenerate = async (file, type, durationMinutes, downloads) => {
     const safeMinutes = Math.max(1, Number(durationMinutes) || 1);
+    const safeDownloads = Math.max(1, Number(downloads) || 1);
     const fileId = getFileId(file);
     const expiresAt = Date.now() + safeMinutes * 60000;
 
@@ -121,13 +127,24 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
       setIsGenerating(true);
       setModalError("");
 
-      const result = await getDownloadUrl(file.fileName, userId, safeMinutes);
+      const result = await getDownloadUrl(
+        file.fileName,
+        userId,
+        safeMinutes,
+        safeDownloads,
+      );
+
+      const generatedUrl = result?.downloadUrl || "";
+      const isProxyUrl = generatedUrl.startsWith(executeDownloadBaseUrl);
+      const proxyUrl = isProxyUrl
+        ? generatedUrl
+        : `${executeDownloadBaseUrl}?userId=${encodeURIComponent(userId)}&fileName=${encodeURIComponent(file.fileName)}`;
 
       setLinkStates((prev) => ({
         ...prev,
         [fileId]: {
           status: "active",
-          url: result.downloadUrl,
+          url: proxyUrl,
           expiresAt,
           type,
         },
@@ -193,6 +210,8 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
+      setCopyFeedback("Copied!");
+      setTimeout(() => setCopyFeedback(""), 1500);
     } catch {
       // Intentionally ignored when clipboard API is not available.
     }
@@ -371,6 +390,24 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                 <option value={15}>15</option>
                 <option value={60}>60</option>
               </select>
+
+              <label
+                htmlFor="maxDownloadsInput"
+                className={styles.durationLabel}
+              >
+                Max allowed downloads:
+              </label>
+              <input
+                id="maxDownloadsInput"
+                type="number"
+                min={1}
+                step={1}
+                className={styles.durationSelect}
+                value={maxDownloads}
+                onChange={(e) =>
+                  setMaxDownloads(Math.max(1, Number(e.target.value) || 1))
+                }
+              />
             </div>
 
             {modalError && <p className={styles.modalError}>{modalError}</p>}
@@ -387,26 +424,15 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                   <div className={styles.qrWrap}>
                     <QRCodeSVG value={activeSelectedState.url} size={180} />
                   </div>
-                ) : (
-                  <div className={styles.urlWrap}>
-                    <a
-                      href={activeSelectedState.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={styles.generatedLink}
-                    >
-                      Open Download Link
-                    </a>
-                  </div>
-                )}
+                ) : null}
 
                 <div className={styles.modalActions}>
                   <button
                     type="button"
-                    className={styles.actionBtn}
+                    className={styles.copyBtn}
                     onClick={() => copyToClipboard(activeSelectedState.url)}
                   >
-                    Copy URL
+                    Copy Download Link
                   </button>
                   <button
                     type="button"
@@ -416,6 +442,10 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                     Revoke
                   </button>
                 </div>
+
+                {copyFeedback && (
+                  <p className={styles.copiedText}>{copyFeedback}</p>
+                )}
               </div>
             ) : (
               <div className={styles.modalActions}>
@@ -423,7 +453,12 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                   type="button"
                   className={styles.actionBtn}
                   onClick={() =>
-                    handleGenerate(selectedFile, "link", selectedDuration)
+                    handleGenerate(
+                      selectedFile,
+                      "link",
+                      selectedDuration,
+                      maxDownloads,
+                    )
                   }
                   disabled={isGenerating}
                 >
@@ -433,7 +468,12 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                   type="button"
                   className={styles.actionBtn}
                   onClick={() =>
-                    handleGenerate(selectedFile, "qr", selectedDuration)
+                    handleGenerate(
+                      selectedFile,
+                      "qr",
+                      selectedDuration,
+                      maxDownloads,
+                    )
                   }
                   disabled={isGenerating}
                 >

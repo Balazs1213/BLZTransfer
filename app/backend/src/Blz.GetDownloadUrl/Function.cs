@@ -69,6 +69,7 @@ public class Function
 			}
 
 			var payload = payloadResult.Payload!;
+			context.Logger.LogInformation($"Incoming request values: fileName={payload.FileName}, userId={payload.UserId}, maxDownloads={payload.MaxDownloads}");
 			context.Logger.LogInformation($"Generating download URL for userId={payload.UserId}, fileName={payload.FileName}, expiresInMinutes={payload.ExpiresInMinutes}");
 
 			var getItemResponse = await _dynamoDbClient.GetItemAsync(new GetItemRequest
@@ -97,6 +98,33 @@ public class Function
 				return CreateResponse(403, new { message = "Download is not allowed for this file status." });
 			}
 
+			context.Logger.LogInformation("Attempting to update DynamoDB...");
+			var shareExpiresAtUnix = DateTimeOffset.UtcNow.AddMinutes(payload.ExpiresInMinutes).ToUnixTimeSeconds();
+			await _dynamoDbClient.UpdateItemAsync(new UpdateItemRequest
+			{
+				TableName = TableName,
+				Key = new Dictionary<string, AttributeValue>
+				{
+					["userId"] = new AttributeValue { S = payload.UserId },
+					["fileName"] = new AttributeValue { S = payload.FileName }
+				},
+				UpdateExpression = "SET remainingDownloads = :maxDownloads, shareExpiresAt = :shareExpiresAt",
+				ConditionExpression = "attribute_exists(fileName) AND ((attribute_exists(#statusLower) AND (#statusLower = :clean OR #statusLower = :analyzed OR #statusLower = :scanning)) OR (attribute_exists(#statusUpper) AND (#statusUpper = :clean OR #statusUpper = :analyzed OR #statusUpper = :scanning)))",
+				ExpressionAttributeNames = new Dictionary<string, string>
+				{
+					["#statusLower"] = "status",
+					["#statusUpper"] = "Status"
+				},
+				ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+				{
+					[":maxDownloads"] = new AttributeValue { N = payload.MaxDownloads.ToString() },
+					[":shareExpiresAt"] = new AttributeValue { N = shareExpiresAtUnix.ToString() },
+					[":clean"] = new AttributeValue { S = "Clean" },
+					[":analyzed"] = new AttributeValue { S = "Analyzed" },
+					[":scanning"] = new AttributeValue { S = "scanning" }
+				}
+			});
+
 			var presignedRequest = new GetPreSignedUrlRequest
 			{
 				BucketName = BucketName,
@@ -112,6 +140,7 @@ public class Function
 		}
 		catch (Exception ex)
 		{
+			context.Logger.LogError(ex.ToString());
 			context.Logger.LogError($"GetDownloadUrl failed: {ex}");
 			return CreateResponse(500, new { message = "Internal server error." });
 		}
@@ -162,11 +191,18 @@ public class Function
 			expiresInMinutes = 5;
 		}
 
+		var maxDownloads = payload?.MaxDownloads ?? 1;
+		if (maxDownloads <= 0)
+		{
+			maxDownloads = 1;
+		}
+
 		return ParseResult.Valid(new ParsedRequest
 		{
 			FileName = fileName,
 			UserId = userId,
-			ExpiresInMinutes = expiresInMinutes
+			ExpiresInMinutes = expiresInMinutes,
+			MaxDownloads = maxDownloads
 		});
 	}
 
@@ -198,6 +234,7 @@ public class Function
 		public string? FileName { get; set; }
 		public string? UserId { get; set; }
 		public int? ExpiresInMinutes { get; set; }
+		public int? MaxDownloads { get; set; }
 	}
 
 	private sealed class ParsedRequest
@@ -205,6 +242,7 @@ public class Function
 		public string FileName { get; set; } = string.Empty;
 		public string UserId { get; set; } = "guest";
 		public int ExpiresInMinutes { get; set; } = 5;
+		public int MaxDownloads { get; set; } = 1;
 	}
 
 	private sealed class ParseResult
