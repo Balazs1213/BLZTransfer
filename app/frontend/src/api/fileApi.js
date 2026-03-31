@@ -18,3 +18,26 @@ export const checkFileStatus = async (fileName, userId = "guest") => {
     return "Error";
   }
 };
+
+export const getUserFiles = async (apiUrl, userId = "guest") => {
+  if (!apiUrl || typeof apiUrl !== "string") {
+    throw new Error("Missing or invalid apiUrl");
+  }
+
+  const safeUserId =
+    userId && String(userId).trim() ? String(userId).trim() : "guest";
+  const normalizedUrl = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
+  const requestUrl = `${normalizedUrl}?userId=${encodeURIComponent(safeUserId)}`;
+
+  const response = await fetch(requestUrl, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user files: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};

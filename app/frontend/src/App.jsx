@@ -4,6 +4,7 @@ import FilePicker from "./components/Upload/FilePicker/FilePicker";
 import Button from "./components/UI/Buttons/Button";
 import { useState } from "react";
 import { checkFileStatus } from "./api/fileApi";
+import FileDashboard from "./components/Dashboard/FileDashboard";
 
 function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -52,8 +53,8 @@ function App() {
         body: JSON.stringify({
           fileName: file.name,
           fileSize: file.size,
-          UserId: currentUsername, 
-          userId: currentUsername, 
+          UserId: currentUsername,
+          userId: currentUsername,
         }),
         headers: { "Content-Type": "application/json" },
       });
@@ -162,6 +163,22 @@ function App() {
               </Button>
             </div>
           )}
+
+          <div
+            style={{
+              marginTop: "3rem",
+              paddingTop: "2rem",
+              borderTop: "1px solid #e5e7eb",
+            }}
+          >
+            <h3 style={{ marginBottom: "1.5rem", color: "#374151" }}>
+              My Uploaded Files
+            </h3>
+            <FileDashboard
+              userId={currentUsername}
+              apiUrl="https://s2t1s0rl7g.execute-api.us-east-1.amazonaws.com/default/blz-get-user-files"
+            />
+          </div>
         </div>
       )}
     </main>

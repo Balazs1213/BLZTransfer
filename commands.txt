@@ -1,2 +1,5 @@
-AWS creddentials megynitása:
+AWS credentials megynitása:
 code "C:\Users\User\.aws\credentials"
+
+Repomix:
+npx repomix --ignore "**/node_modules/**,**/bin/**,**/obj/**,**/.git/**,**/dist/**" --output repomix-output.md
