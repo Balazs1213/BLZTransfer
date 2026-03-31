@@ -16,6 +16,15 @@
   flex-direction: column;
   gap: 0.5rem;
   min-height: 210px;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16);
 }
 
 .fileName {
@@ -80,8 +89,85 @@
   border-color: #fecdd3;
 }
 
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 500px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modalTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.actionBtn:hover {
+  background: #ecfeff;
+  border-color: #67e8f9;
+}
+
+.closeBtn {
+  margin-top: 0.25rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: #1e293b;
+}
+
 @media (max-width: 640px) {
   .dashboard {
     grid-template-columns: 1fr;
+  }
+
+  .modalActions {
+    flex-direction: column;
   }
 }

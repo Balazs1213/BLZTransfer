@@ -47,6 +47,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -104,47 +105,108 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
   }
 
   return (
-    <section className={styles.dashboard}>
-      {files.map((file, index) => {
-        const labels = toArray(file.aiLabels).filter(
-          (label) => typeof label === "string" && label.trim(),
-        );
-        const textPreview = extractPreview(file.extractedText);
-        const cardKey = `${file.fileName || file.originalName || "file"}-${index}`;
+    <>
+      <section className={styles.dashboard}>
+        {files.map((file, index) => {
+          const labels = toArray(file.aiLabels).filter(
+            (label) => typeof label === "string" && label.trim(),
+          );
+          const textPreview = extractPreview(file.extractedText);
+          const cardKey = `${file.fileName || file.originalName || "file"}-${index}`;
 
-        return (
-          <article key={cardKey} className={styles.card}>
-            <h3 className={styles.fileName}>{file.originalName}</h3>
+          return (
+            <article
+              key={cardKey}
+              className={styles.card}
+              onClick={() => setSelectedFile(file)}
+            >
+              <h3 className={styles.fileName}>{file.originalName}</h3>
+
+              <p className={styles.metaRow}>
+                <span className={styles.metaLabel}>Uploaded:</span>{" "}
+                {formatDate(file.uploadDate)}
+              </p>
+              <p className={styles.metaRow}>
+                <span className={styles.metaLabel}>Status:</span> {file.status}
+              </p>
+              <p className={styles.metaRow}>
+                <span className={styles.metaLabel}>Category:</span>{" "}
+                {file.category}
+              </p>
+
+              {labels.length > 0 && (
+                <div className={styles.labelsWrap}>
+                  {labels.map((label, labelIndex) => (
+                    <span
+                      key={`${label}-${labelIndex}`}
+                      className={styles.badge}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {textPreview && (
+                <blockquote className={styles.quote}>{textPreview}</blockquote>
+              )}
+            </article>
+          );
+        })}
+      </section>
+
+      {selectedFile && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setSelectedFile(null)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className={styles.modalTitle}>{selectedFile.originalName}</h3>
 
             <p className={styles.metaRow}>
-              <span className={styles.metaLabel}>Uploaded:</span>{" "}
-              {formatDate(file.uploadDate)}
-            </p>
-            <p className={styles.metaRow}>
-              <span className={styles.metaLabel}>Status:</span> {file.status}
+              <span className={styles.metaLabel}>Status:</span>{" "}
+              {selectedFile.status}
             </p>
             <p className={styles.metaRow}>
               <span className={styles.metaLabel}>Category:</span>{" "}
-              {file.category}
+              {selectedFile.category}
+            </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>Uploaded:</span>{" "}
+              {formatDate(selectedFile.uploadDate)}
             </p>
 
-            {labels.length > 0 && (
-              <div className={styles.labelsWrap}>
-                {labels.map((label, labelIndex) => (
-                  <span key={`${label}-${labelIndex}`} className={styles.badge}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.actionBtn}
+                onClick={() => console.log("Get Download Link", selectedFile)}
+              >
+                Get Download Link
+              </button>
+              <button
+                type="button"
+                className={styles.actionBtn}
+                onClick={() => console.log("Get QR Code", selectedFile)}
+              >
+                Get QR Code
+              </button>
+            </div>
 
-            {textPreview && (
-              <blockquote className={styles.quote}>{textPreview}</blockquote>
-            )}
-          </article>
-        );
-      })}
-    </section>
+            <button
+              type="button"
+              className={styles.closeBtn}
+              onClick={() => setSelectedFile(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
