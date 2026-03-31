@@ -41,3 +41,43 @@ export const getUserFiles = async (apiUrl, userId = "guest") => {
   const data = await response.json();
   return Array.isArray(data) ? data : [];
 };
+
+export const getDownloadUrl = async (
+  fileName,
+  userId = "guest",
+  expiresInMinutes = 5,
+) => {
+  if (!fileName || typeof fileName !== "string") {
+    throw new Error("fileName is required");
+  }
+
+  const safeUserId =
+    userId && String(userId).trim() ? String(userId).trim() : "guest";
+  const safeExpires = Math.max(1, Number(expiresInMinutes) || 5);
+
+  const response = await fetch(
+    "https://41tjtywnd9.execute-api.us-east-1.amazonaws.com/default/blz-get-download-url",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName,
+        userId: safeUserId,
+        expiresInMinutes: safeExpires,
+      }),
+    },
+  );
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      payload?.message || `Failed to generate URL: ${response.status}`,
+    );
+  }
+
+  if (!payload?.downloadUrl) {
+    throw new Error("downloadUrl is missing in API response");
+  }
+
+  return payload;
+};

@@ -27,6 +27,16 @@
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16);
 }
 
+.cardActive {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+}
+
+.cardExpired {
+  border-color: #f87171;
+  background-color: #fef2f2;
+}
+
 .fileName {
   margin: 0;
   font-size: 1.05rem;
@@ -44,6 +54,32 @@
 .metaLabel {
   color: #0f172a;
   font-weight: 600;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  width: fit-content;
+}
+
+.statusIconMuted {
+  color: #94a3b8;
+}
+
+.statusIconActive {
+  color: #10b981;
+}
+
+.statusIconExpired {
+  color: #ef4444;
 }
 
 .labelsWrap {
@@ -72,6 +108,41 @@
   color: #334155;
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.cardActions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.revokeBtn,
+.regenerateBtn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.revokeBtn {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.revokeBtn:hover {
+  background: #fecaca;
+}
+
+.regenerateBtn {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.regenerateBtn:hover {
+  background: #bfdbfe;
 }
 
 .state {
@@ -119,6 +190,28 @@
   word-break: break-word;
 }
 
+.durationControl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.durationLabel {
+  font-size: 0.85rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.durationSelect {
+  width: 160px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: #ffffff;
+  color: #0f172a;
+}
+
 .modalActions {
   display: flex;
   gap: 0.75rem;
@@ -141,6 +234,11 @@
     border-color 0.2s ease;
 }
 
+.actionBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .actionBtn:hover {
   background: #ecfeff;
   border-color: #67e8f9;
@@ -160,6 +258,53 @@
 
 .closeBtn:hover {
   background: #1e293b;
+}
+
+.modalError {
+  margin: 0;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.86rem;
+}
+
+.generatedWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.generatedMeta {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.urlWrap {
+  display: flex;
+}
+
+.generatedLink {
+  color: #0369a1;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.qrWrap {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
 }
 
 @media (max-width: 640px) {
