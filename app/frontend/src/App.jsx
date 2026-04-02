@@ -188,7 +188,7 @@ function App() {
                   {t("welcome")}, <strong>{currentUsername}</strong>
                 </span>
                 <Button onClick={logoutHandler} className="logout-btn">
-                  {t("logout")}
+                  {isGuest ? t("back") : t("logout")}
                 </Button>
               </>
             )}
@@ -231,6 +231,7 @@ function App() {
                   progress={progress}
                   statusText={statusText}
                   currentStatus={currentStatus}
+                  t={t}
                 />
 
                 {selectedFile && !isUploading && progress === 0 && (
