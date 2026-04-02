@@ -6,6 +6,8 @@ import classes from "./AuthHome.module.css";
 import { signIn, signUp, confirmSignUp, signOut } from "aws-amplify/auth";
 
 const AuthHome = (props) => {
+  const { onLogin, onContinueAsGuest, language, t = (key) => key } = props;
+
   // Nézetek: 'home' | 'login' | 'register' | 'confirm'
   const [view, setView] = useState("home");
   const [isLoading, setIsLoading] = useState(false);
@@ -49,11 +51,9 @@ const AuthHome = (props) => {
         },
       });
       setView("confirm");
-      setSuccessMessage(
-        "Registration successful! Please check your email for the verification code.",
-      );
-    } catch (error) {
-      setErrorMessage(error.message);
+      setSuccessMessage(t("registrationSuccess"));
+    } catch {
+      setErrorMessage(t("authError"));
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +72,9 @@ const AuthHome = (props) => {
         confirmationCode: formData.code,
       });
       setView("login");
-      setSuccessMessage("Email verified successfully! You can now log in.");
-    } catch (error) {
-      setErrorMessage(error.message);
+      setSuccessMessage(t("emailVerified"));
+    } catch {
+      setErrorMessage(t("authError"));
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +102,7 @@ const AuthHome = (props) => {
       });
 
       if (isSignedIn) {
-        props.onLogin(formData.username);
+        onLogin(formData.username);
       }
     } catch (error) {
       // Ha már eleve be van jelentkezve (bár a signOut után ez ritka), engedjük be!
@@ -110,14 +110,25 @@ const AuthHome = (props) => {
         error.name === "UserAlreadyAuthenticatedException" ||
         error.message.includes("already a signed in user")
       ) {
-        props.onLogin(formData.username);
+        onLogin(formData.username);
       } else {
-        setErrorMessage(error.message);
+        setErrorMessage(t("invalidCredentials"));
       }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const resetMessagesOnLanguageChange = () => {
+    if (language) {
+      setErrorMessage("");
+      setSuccessMessage("");
+    }
+  };
+
+  React.useEffect(() => {
+    resetMessagesOnLanguageChange();
+  }, [language]);
 
   // ==========================================================
   // RENDERELÉSI NÉZETEK (Gyakorlatilag "al-komponensek")
@@ -126,81 +137,87 @@ const AuthHome = (props) => {
   if (view === "register") {
     return (
       <Card className={classes.auth}>
-        <h1>Create Account</h1>
-        <p>Join BLZ Transfer today.</p>
+        <h1>{t("registerTitle")}</h1>
+        <p>{t("joinUs")}</p>
         {errorMessage && <p className={classes.error}>{errorMessage}</p>}
 
         <form className={classes.form} onSubmit={handleRegister}>
           <div className={classes.inputGroup}>
-            <label>Username</label>
+            <label>{t("username")}</label>
             <input
               className={classes.input}
               name="username"
               required
+              placeholder={t("username")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Full Name</label>
+            <label>{t("fullName")}</label>
             <input
               className={classes.input}
               type="text"
               name="name"
               required
+              placeholder={t("fullName")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Email Address</label>
+            <label>{t("email")}</label>
             <input
               className={classes.input}
               type="email"
               name="email"
               required
+              placeholder={t("email")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Password</label>
+            <label>{t("password")}</label>
             <input
               className={classes.input}
               type="password"
               name="password"
               required
+              placeholder={t("password")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Phone Number (e.g. +36301234567)</label>
+            <label>{t("phone")}</label>
             <input
               className={classes.input}
               type="tel"
               name="phone"
               required
+              placeholder={t("phonePlaceholder")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Address</label>
+            <label>{t("address")}</label>
             <input
               className={classes.input}
               type="text"
               name="address"
               required
+              placeholder={t("address")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Gender</label>
+            <label>{t("gender")}</label>
             <select
               className={classes.input}
               name="gender"
               value={formData.gender}
               onChange={handleChange}
             >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="male">{t("male")}</option>
+              <option value="female">{t("female")}</option>
+              <option value="other">{t("other")}</option>
             </select>
           </div>
 
@@ -209,12 +226,12 @@ const AuthHome = (props) => {
             disabled={isLoading}
             style={{ marginTop: "1rem" }}
           >
-            {isLoading ? "Creating..." : "Sign Up"}
+            {isLoading ? t("creatingAccount") : t("registerAction")}
           </Button>
         </form>
 
         <p className={classes.switchText}>
-          Already have an account?
+          {t("alreadyHaveAccount")}
           <button
             type="button"
             className={classes.linkBtn}
@@ -223,7 +240,7 @@ const AuthHome = (props) => {
               setErrorMessage("");
             }}
           >
-            Log In
+            {t("login")}
           </button>
         </p>
       </Card>
@@ -233,19 +250,20 @@ const AuthHome = (props) => {
   if (view === "confirm") {
     return (
       <Card className={classes.auth}>
-        <h1>Verify Email</h1>
-        <p>We sent a 6-digit code to your email.</p>
+        <h1>{t("verifyEmail")}</h1>
+        <p>{t("emailVerificationSent")}</p>
         {successMessage && <p className={classes.success}>{successMessage}</p>}
         {errorMessage && <p className={classes.error}>{errorMessage}</p>}
 
         <form className={classes.form} onSubmit={handleConfirmCode}>
           <div className={classes.inputGroup}>
-            <label>Verification Code</label>
+            <label>{t("verificationCode")}</label>
             <input
               className={classes.input}
               type="text"
               name="code"
               required
+              placeholder={t("verificationCode")}
               onChange={handleChange}
             />
           </div>
@@ -254,7 +272,7 @@ const AuthHome = (props) => {
             disabled={isLoading}
             style={{ marginTop: "1rem" }}
           >
-            {isLoading ? "Verifying..." : "Confirm Code"}
+            {isLoading ? t("verifyingCode") : t("confirmCode")}
           </Button>
         </form>
       </Card>
@@ -264,29 +282,31 @@ const AuthHome = (props) => {
   if (view === "login") {
     return (
       <Card className={classes.auth}>
-        <h1>Welcome Back</h1>
-        <p>Log in to access your secure files.</p>
+        <h1>{t("loginTitle")}</h1>
+        <p>{t("loginPrompt")}</p>
         {successMessage && <p className={classes.success}>{successMessage}</p>}
         {errorMessage && <p className={classes.error}>{errorMessage}</p>}
 
         <form className={classes.form} onSubmit={handleLogin}>
           <div className={classes.inputGroup}>
-            <label>Username</label>
+            <label>{t("username")}</label>
             <input
               className={classes.input}
               type="text"
               name="username"
               required
+              placeholder={t("username")}
               onChange={handleChange}
             />
           </div>
           <div className={classes.inputGroup}>
-            <label>Password</label>
+            <label>{t("password")}</label>
             <input
               className={classes.input}
               type="password"
               name="password"
               required
+              placeholder={t("password")}
               onChange={handleChange}
             />
           </div>
@@ -295,12 +315,12 @@ const AuthHome = (props) => {
             disabled={isLoading}
             style={{ marginTop: "1rem" }}
           >
-            {isLoading ? "Logging in..." : "Log In"}
+            {isLoading ? t("loggingIn") : t("loginAction")}
           </Button>
         </form>
 
         <p className={classes.switchText}>
-          Don't have an account?
+          {t("noAccount")}
           <button
             type="button"
             className={classes.linkBtn}
@@ -310,7 +330,7 @@ const AuthHome = (props) => {
               setSuccessMessage("");
             }}
           >
-            Sign Up
+            {t("register")}
           </button>
         </p>
         <p className={classes.switchText} style={{ marginTop: "0.5rem" }}>
@@ -319,7 +339,7 @@ const AuthHome = (props) => {
             className={classes.linkBtn}
             onClick={() => setView("home")}
           >
-            Back to Home
+            {t("backToHome")}
           </button>
         </p>
       </Card>
@@ -329,16 +349,16 @@ const AuthHome = (props) => {
   // --- ALAPÉRTELMEZETT (HOME) NÉZET ---
   return (
     <Card className={classes.auth}>
-      <h1>Welcome to BLZ Transfer</h1>
-      <p>Secure file sharing with integrated virus scanning.</p>
+      <h1>{t("welcomeBack")}</h1>
+      <p>{t("secureFiles")}</p>
 
       <div className={classes.actions}>
-        <Button className={classes.guestBtn} onClick={props.onContinueAsGuest}>
-          Continue as Guest
+        <Button className={classes.guestBtn} onClick={onContinueAsGuest}>
+          {t("continueAsGuest")}
         </Button>
 
         <Button className={classes.loginBtn} onClick={() => setView("login")}>
-          Login to Account
+          {t("loginToAccount")}
         </Button>
       </div>
     </Card>

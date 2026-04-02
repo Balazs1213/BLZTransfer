@@ -1,41 +1,20 @@
 import "./App.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AuthHome from "./components/Auth/AuthHome/AuthHome";
 import FilePicker from "./components/Upload/FilePicker/FilePicker";
 import Button from "./components/UI/Buttons/Button";
 import FileDashboard from "./components/Dashboard/FileDashboard";
 import { checkFileStatus } from "./api/fileApi";
-
-// ============================================
-// I18N: Multi-language support preparation
-// ============================================
-const T = {
-  en: {
-    guestFileTransfer: "Guest File Transfer",
-    secureUserDashboard: "Secure User Dashboard",
-    uploadTab: "Upload",
-    myFilesTab: "My Files",
-    welcome: "Welcome",
-    logout: "Logout",
-    backToHome: "Back to Home",
-    startUpload: "Start Upload & Scan",
-    readyToScan: "Ready to scan:",
-    myUploadedFiles: "My Uploaded Files",
-    uploadingToS3: "Uploading to AWS S3...",
-    virusScanInProgress: "Virus scan in progress... 🛡️",
-    uploadSuccessful: "Upload successful! File is clean. ✅",
-    uploadAborted: "Upload aborted! Virus detected! ❌☣️",
-    scanError: "An error occurred during scanning.",
-    preparingUpload: "Preparing upload...",
-  },
-};
-
-const getTranslation = (key, language = "en") => {
-  return T[language]?.[key] || T.en[key] || key;
-};
+import { IoSettingsOutline } from "react-icons/io5";
+import SettingsModal from "./components/Settings/SettingsModal";
+import { translations } from "./utils/translations";
 
 function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [language, setLanguage] = useState(
+    localStorage.getItem("appLang") || "en",
+  );
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userType, setUserType] = useState(null);
   const [currentUsername, setCurrentUsername] = useState("guest");
   const [activeTab, setActiveTab] = useState("upload");
@@ -45,6 +24,12 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const [currentStatus, setCurrentStatus] = useState("Idle");
+
+  useEffect(() => {
+    localStorage.setItem("appLang", language);
+  }, [language]);
+
+  const t = (key) => translations[language]?.[key] || key;
 
   const loginHandler = (username) => {
     setUserType("user");
@@ -62,6 +47,7 @@ function App() {
 
   const logoutHandler = () => {
     setIsAuthorized(false);
+    setIsSettingsOpen(false);
     setUserType(null);
     setCurrentUsername("guest");
     setActiveTab("upload");
@@ -82,7 +68,7 @@ function App() {
     setIsUploading(true);
     setProgress(10);
     setCurrentStatus("Uploading");
-    setStatusText(getTranslation("preparingUpload"));
+    setStatusText(t("preparingUpload"));
 
     const API_ENDPOINT =
       "https://h4g8mvrgwd.execute-api.us-east-1.amazonaws.com/dev/get-upload-link";
@@ -106,7 +92,7 @@ function App() {
       const generatedFileName = apiData.fileName || apiData.FileName;
 
       setProgress(30);
-      setStatusText(getTranslation("uploadingToS3"));
+      setStatusText(t("uploadingToS3"));
 
       const s3Response = await fetch(uploadUrl, {
         method: "PUT",
@@ -117,7 +103,7 @@ function App() {
       if (!s3Response.ok) throw new Error("S3 upload failed.");
 
       setProgress(50);
-      setStatusText(getTranslation("virusScanInProgress"));
+      setStatusText(t("virusScanInProgress"));
       setCurrentStatus("Scanning");
 
       let pollingStatus = "Scanning";
@@ -141,12 +127,12 @@ function App() {
       setProgress(100);
 
       if (pollingStatus === "Clean") {
-        setStatusText(getTranslation("uploadSuccessful"));
+        setStatusText(t("uploadSuccessful"));
         setSelectedFile(null);
       } else if (pollingStatus === "Infected") {
-        setStatusText(getTranslation("uploadAborted"));
+        setStatusText(t("uploadAborted"));
       } else {
-        setStatusText(getTranslation("scanError"));
+        setStatusText(t("scanError"));
         setCurrentStatus("Error");
       }
     } catch (error) {
@@ -159,10 +145,6 @@ function App() {
     }
   };
 
-  if (!isAuthorized) {
-    return <AuthHome onLogin={loginHandler} onContinueAsGuest={guestHandler} />;
-  }
-
   const isGuest = userType === "guest";
 
   return (
@@ -171,94 +153,127 @@ function App() {
       <nav className="navbar">
         <div className="navbar-brand">
           <h1 className="navbar-title">
-            {isGuest
-              ? getTranslation("guestFileTransfer")
-              : getTranslation("secureUserDashboard")}
+            {!isAuthorized
+              ? "BLZ Transfer"
+              : isGuest
+                ? t("guestTransfer")
+                : t("secureDashboard")}
           </h1>
         </div>
 
         <div className="navbar-content">
           {/* TABS - Only show both tabs if user is logged in */}
-          {!isGuest && (
+          {isAuthorized && !isGuest && (
             <div className="navbar-tabs">
               <button
                 className={`navbar-tab ${activeTab === "upload" ? "active" : ""}`}
                 onClick={() => setActiveTab("upload")}
               >
-                {getTranslation("uploadTab")}
+                {t("upload")}
               </button>
               <button
                 className={`navbar-tab ${activeTab === "myfiles" ? "active" : ""}`}
                 onClick={() => setActiveTab("myfiles")}
               >
-                {getTranslation("myFilesTab")}
+                {t("myFiles")}
               </button>
             </div>
           )}
 
-          {/* USER INFO & LOGOUT */}
+          {/* USER INFO, LOGOUT, SETTINGS */}
           <div className="navbar-user">
-            <span className="navbar-username">
-              {getTranslation("welcome")}, <strong>{currentUsername}</strong>
-            </span>
-            <Button onClick={logoutHandler} className="logout-btn">
-              {isGuest
-                ? getTranslation("backToHome")
-                : getTranslation("logout")}
-            </Button>
+            {isAuthorized && (
+              <>
+                <span className="navbar-username">
+                  {t("welcome")}, <strong>{currentUsername}</strong>
+                </span>
+                <Button onClick={logoutHandler} className="logout-btn">
+                  {t("logout")}
+                </Button>
+              </>
+            )}
+
+            <button
+              type="button"
+              className="settings-trigger"
+              aria-label="Open settings"
+              onClick={() => setIsSettingsOpen(true)}
+            >
+              <IoSettingsOutline className="settings-icon" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </nav>
 
       {/* MAIN CONTENT */}
-      <main className="dashboard-main">
-        {/* UPLOAD TAB */}
-        {(isGuest || activeTab === "upload") && (
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h2>{getTranslation("uploadTab")}</h2>
-            </div>
+      {!isAuthorized ? (
+        <main className="auth-main">
+          <AuthHome
+            onLogin={loginHandler}
+            onContinueAsGuest={guestHandler}
+            language={language}
+            t={t}
+          />
+        </main>
+      ) : (
+        <main className="dashboard-main">
+          {/* UPLOAD TAB */}
+          {(isGuest || activeTab === "upload") && (
+            <section className="dashboard-section">
+              <div className="section-header">
+                <h2>{t("upload")}</h2>
+              </div>
 
-            <div className="section-content">
-              <FilePicker
-                onFileSelect={fileSelectHandler}
-                isUploading={isUploading}
-                progress={progress}
-                statusText={statusText}
-                currentStatus={currentStatus}
-              />
+              <div className="section-content">
+                <FilePicker
+                  onFileSelect={fileSelectHandler}
+                  isUploading={isUploading}
+                  progress={progress}
+                  statusText={statusText}
+                  currentStatus={currentStatus}
+                />
 
-              {selectedFile && !isUploading && progress === 0 && (
-                <div className="file-ready-action">
-                  <p className="ready-text">
-                    {getTranslation("readyToScan")}{" "}
-                    <strong>{selectedFile.name}</strong>
-                  </p>
-                  <Button onClick={() => uploadHandler(selectedFile)}>
-                    {getTranslation("startUpload")}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+                {selectedFile && !isUploading && progress === 0 && (
+                  <div className="file-ready-action">
+                    <p className="ready-text">
+                      {t("readyToScan")} <strong>{selectedFile.name}</strong>
+                    </p>
+                    <Button onClick={() => uploadHandler(selectedFile)}>
+                      {t("startUpload")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
-        {/* MY FILES TAB - Only for logged-in users */}
-        {!isGuest && activeTab === "myfiles" && (
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h2>{getTranslation("myUploadedFiles")}</h2>
-            </div>
+          {/* MY FILES TAB - Only for logged-in users */}
+          {!isGuest && activeTab === "myfiles" && (
+            <section className="dashboard-section">
+              <div className="section-header">
+                <h2>{t("myFiles")}</h2>
+              </div>
 
-            <div className="section-content">
-              <FileDashboard
-                userId={currentUsername}
-                apiUrl="https://s2t1s0rl7g.execute-api.us-east-1.amazonaws.com/default/blz-get-user-files"
-              />
-            </div>
-          </section>
-        )}
-      </main>
+              <div className="section-content">
+                <FileDashboard
+                  userId={currentUsername}
+                  apiUrl="https://s2t1s0rl7g.execute-api.us-east-1.amazonaws.com/default/blz-get-user-files"
+                  t={t}
+                />
+              </div>
+            </section>
+          )}
+        </main>
+      )}
+
+      {isSettingsOpen && (
+        <SettingsModal
+          onClose={() => setIsSettingsOpen(false)}
+          language={language}
+          setLanguage={setLanguage}
+          t={t}
+        />
+      )}
     </div>
   );
 }

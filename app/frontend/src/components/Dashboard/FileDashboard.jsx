@@ -58,7 +58,7 @@ const formatRemaining = (remainingMs) => {
   return `${minutes}:${seconds}`;
 };
 
-const FileDashboard = ({ userId = "guest", apiUrl }) => {
+const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
   const executeDownloadBaseUrl =
     "https://h8sikvnc4a.execute-api.us-east-1.amazonaws.com/default/blz-execute-download";
 
@@ -217,24 +217,33 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
     }
   };
 
+  const translateStatusValue = (value) => {
+    const normalized = String(value ?? "").toLowerCase();
+    const translated = t(normalized);
+    return translated !== normalized ? translated : value || t("n/a");
+  };
+
+  const renderActiveStateLabel = (status, type, remainingSeconds) => {
+    const typeLabel = type === "qr" ? "QR" : "Link";
+    return `${t(status)} (${typeLabel}) - ${formatRemaining(remainingSeconds * 1000)}`;
+  };
+
   const hasFiles = useMemo(() => files.length > 0, [files]);
 
   if (loading) {
-    return <section className={styles.state}>Loading files...</section>;
+    return <section className={styles.state}>{t("loadingFiles")}</section>;
   }
 
   if (error) {
     return (
       <section className={`${styles.state} ${styles.error}`}>
-        Error: {error}
+        {t("error")} {error}
       </section>
     );
   }
 
   if (!hasFiles) {
-    return (
-      <section className={styles.state}>No files found for this user.</section>
-    );
+    return <section className={styles.state}>{t("noFilesFound")}</section>;
   }
 
   return (
@@ -266,7 +275,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                 {derivedState.status === "inactive" && (
                   <>
                     <FiClock className={styles.statusIconMuted} />
-                    <span>Not active</span>
+                    <span>{t("notActive")}</span>
                   </>
                 )}
 
@@ -274,8 +283,11 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                   <>
                     <FiCheckCircle className={styles.statusIconActive} />
                     <span>
-                      Active ({derivedState.type === "qr" ? "QR" : "Link"}) -{" "}
-                      {formatRemaining(derivedState.remainingSeconds * 1000)}
+                      {renderActiveStateLabel(
+                        "active",
+                        derivedState.type,
+                        derivedState.remainingSeconds,
+                      )}
                     </span>
                   </>
                 )}
@@ -283,21 +295,22 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                 {isExpired && (
                   <>
                     <FiXCircle className={styles.statusIconExpired} />
-                    <span>Expired</span>
+                    <span>{t("notActive")}</span>
                   </>
                 )}
               </div>
 
               <p className={styles.metaRow}>
-                <span className={styles.metaLabel}>Uploaded:</span>{" "}
+                <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
                 {formatDate(file.uploadDate)}
               </p>
               <p className={styles.metaRow}>
-                <span className={styles.metaLabel}>Status:</span> {file.status}
+                <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
+                {translateStatusValue(file.status)}
               </p>
               <p className={styles.metaRow}>
-                <span className={styles.metaLabel}>Category:</span>{" "}
-                {file.category}
+                <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
+                {file.category || t("n/a")}
               </p>
 
               {labels.length > 0 && (
@@ -327,7 +340,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                       handleRevoke(derivedState.fileId);
                     }}
                   >
-                    Revoke
+                    {t("revoke")}
                   </button>
                 )}
 
@@ -340,7 +353,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                       setSelectedFile(file);
                     }}
                   >
-                    Regenerate
+                    {t("getLink")}
                   </button>
                 )}
               </div>
@@ -361,21 +374,21 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
             <h3 className={styles.modalTitle}>{selectedFile.originalName}</h3>
 
             <p className={styles.metaRow}>
-              <span className={styles.metaLabel}>Status:</span>{" "}
-              {selectedFile.status}
+              <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
+              {translateStatusValue(selectedFile.status)}
             </p>
             <p className={styles.metaRow}>
-              <span className={styles.metaLabel}>Category:</span>{" "}
-              {selectedFile.category}
+              <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
+              {selectedFile.category || t("n/a")}
             </p>
             <p className={styles.metaRow}>
-              <span className={styles.metaLabel}>Uploaded:</span>{" "}
+              <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
               {formatDate(selectedFile.uploadDate)}
             </p>
 
             <div className={styles.durationControl}>
               <label htmlFor="durationSelect" className={styles.durationLabel}>
-                Valid for (minutes)
+                {t("validFor")} (minutes)
               </label>
               <select
                 id="durationSelect"
@@ -416,7 +429,8 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
             activeSelectedState.url ? (
               <div className={styles.generatedWrap}>
                 <p className={styles.generatedMeta}>
-                  Active ({activeSelectedState.type === "qr" ? "QR" : "Link"}) -{" "}
+                  {t("active")} (
+                  {activeSelectedState.type === "qr" ? "QR" : "Link"}) -{" "}
                   {formatRemaining(activeSelectedState.remainingSeconds * 1000)}
                 </p>
 
@@ -432,14 +446,14 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                     className={styles.copyBtn}
                     onClick={() => copyToClipboard(activeSelectedState.url)}
                   >
-                    Copy Download Link
+                    {t("copyLink")}
                   </button>
                   <button
                     type="button"
                     className={styles.revokeBtn}
                     onClick={() => handleRevoke(activeSelectedState.fileId)}
                   >
-                    Revoke
+                    {t("revoke")}
                   </button>
                 </div>
 
@@ -462,7 +476,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                   }
                   disabled={isGenerating}
                 >
-                  {isGenerating ? "Generating..." : "Get Link"}
+                  {isGenerating ? t("generating") : t("getLink")}
                 </button>
                 <button
                   type="button"
@@ -477,7 +491,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                   }
                   disabled={isGenerating}
                 >
-                  {isGenerating ? "Generating..." : "Get QR Code"}
+                  {isGenerating ? t("generating") : t("getQrCode")}
                 </button>
               </div>
             )}
@@ -490,7 +504,7 @@ const FileDashboard = ({ userId = "guest", apiUrl }) => {
                 setSelectedFile(null);
               }}
             >
-              Close
+              {t("close")}
             </button>
           </div>
         </div>
