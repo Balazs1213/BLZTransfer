@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
+import { BsTrashFill } from "react-icons/bs";
 import { QRCodeSVG } from "qrcode.react";
-import { getDownloadUrl, getUserFiles } from "../../api/fileApi";
+import { deleteFile, getDownloadUrl, getUserFiles } from "../../api/fileApi";
 import styles from "./FileDashboard.module.css";
 
 const toArray = (value) => {
@@ -73,6 +74,7 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [modalError, setModalError] = useState("");
   const [copyFeedback, setCopyFeedback] = useState("");
+  const [fileToDelete, setFileToDelete] = useState(null);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -217,6 +219,34 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
     }
   };
 
+  const confirmAndDelete = async () => {
+    if (!fileToDelete) return;
+
+    try {
+      setModalError("");
+      await deleteFile(userId, fileToDelete.fileName);
+
+      setFiles((currentFiles) =>
+        currentFiles.filter((file) => file.fileName !== fileToDelete.fileName),
+      );
+
+      setLinkStates((currentStates) => {
+        const nextStates = { ...currentStates };
+        delete nextStates[fileToDelete.fileName];
+        return nextStates;
+      });
+
+      setSelectedFile((currentSelected) =>
+        currentSelected?.fileName === fileToDelete.fileName
+          ? null
+          : currentSelected,
+      );
+      setFileToDelete(null);
+    } catch (err) {
+      setModalError(err?.message || "Failed to delete file.");
+    }
+  };
+
   const translateStatusValue = (value) => {
     const normalized = String(value ?? "").toLowerCase();
     const translated = t(normalized);
@@ -356,6 +386,37 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
                     {t("getLink")}
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  className={styles.trashBtn}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "40px",
+                    height: "40px",
+                    backgroundColor: "#ffe5e5",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFileToDelete(file);
+                  }}
+                  aria-label={t("delete")}
+                >
+                  <BsTrashFill
+                    style={{
+                      color: "#d9534f",
+                      fontSize: "20px",
+                      minWidth: "20px",
+                      minHeight: "20px",
+                      display: "block",
+                    }}
+                  />
+                </button>
               </div>
             </article>
           );
@@ -506,6 +567,46 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
             >
               {t("close")}
             </button>
+          </div>
+        </div>
+      )}
+
+      {fileToDelete && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setFileToDelete(null)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className={styles.modalTitle}>{t("confirmDeleteTitle")}</h3>
+
+            <p className={styles.metaRow}>{t("confirmDeleteText")}</p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>
+                {fileToDelete.originalName}
+              </span>
+            </p>
+
+            {modalError && <p className={styles.modalError}>{modalError}</p>}
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.copyBtn}
+                onClick={() => setFileToDelete(null)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={confirmAndDelete}
+              >
+                {t("delete")}
+              </button>
+            </div>
           </div>
         </div>
       )}

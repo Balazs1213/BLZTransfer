@@ -83,3 +83,24 @@ export const getDownloadUrl = async (
 
   return payload;
 };
+
+export const deleteFile = async (userId, fileName) => {
+  const response = await fetch(
+    "https://42yn5wo3a1.execute-api.us-east-1.amazonaws.com/default/blz-delete-file",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, fileName }),
+    },
+  );
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.message || `Failed to delete file: ${response.status}`,
+    );
+  }
+
+  return payload;
+};

@@ -145,6 +145,28 @@
   background: #bfdbfe;
 }
 
+.trashBtn {
+  margin-left: auto;
+  border: none;
+  border-radius: 8px;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff1f2;
+  color: #b91c1c;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.trashBtn:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+}
+
 .state {
   width: 100%;
   padding: 1rem;
@@ -261,6 +283,31 @@
 }
 
 .copyBtn:active {
+  transform: scale(0.98);
+}
+
+.deleteBtn {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.deleteBtn:hover {
+  background: #fecaca;
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.18);
+}
+
+.deleteBtn:active {
   transform: scale(0.98);
 }
 

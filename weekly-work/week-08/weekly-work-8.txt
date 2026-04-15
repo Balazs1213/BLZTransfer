@@ -1,0 +1,2 @@
+-Frontend alakítgatása, több nyelvűség bevezetése
+-Fájl törlés bevezetése, mind a frontendden, mind a backendden a delete-file lambddával
