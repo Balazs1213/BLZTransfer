@@ -52,8 +52,10 @@ const AuthHome = (props) => {
       });
       setView("confirm");
       setSuccessMessage(t("registrationSuccess"));
-    } catch {
-      setErrorMessage(t("authError"));
+    } catch (error) {
+      console.error("Cognito Signup Error:", error);
+      const exactErrorMessage = error.message || error.response?.data?.message || 'Registration failed';
+      setErrorMessage(exactErrorMessage);
     } finally {
       setIsLoading(false);
     }
