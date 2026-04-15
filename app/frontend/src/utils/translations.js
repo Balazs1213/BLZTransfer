@@ -84,6 +84,8 @@ export const translations = {
     copyLink: "Copy Download Link",
     getLink: "Get Link",
     getQrCode: "Get QR Code",
+    validForMinutes: "Valid for (minutes)",
+    maxDownloads: "Max allowed downloads",
   },
   hu: {
     settings: "Beállítások",
@@ -171,6 +173,8 @@ export const translations = {
     copyLink: "Letöltési link másolása",
     getLink: "Link lekérése",
     getQrCode: "QR-kód lekérése",
+    validForMinutes: "Érvényes (perc)",
+    maxDownloads: "Max. letöltések száma",
   },
   de: {
     settings: "Einstellungen",
@@ -259,5 +263,7 @@ export const translations = {
     copyLink: "Download-Link kopieren",
     getLink: "Link abrufen",
     getQrCode: "QR-Code abrufen",
+    validForMinutes: "Gültig für (Minuten)",
+    maxDownloads: "Max. erlaubte Downloads",
   },
 };

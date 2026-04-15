@@ -449,7 +449,7 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
 
             <div className={styles.durationControl}>
               <label htmlFor="durationSelect" className={styles.durationLabel}>
-                {t("validFor")} (minutes)
+                {t("validForMinutes")}
               </label>
               <select
                 id="durationSelect"
@@ -469,7 +469,7 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
                 htmlFor="maxDownloadsInput"
                 className={styles.durationLabel}
               >
-                Max allowed downloads:
+                {t("maxDownloads")}
               </label>
               <input
                 id="maxDownloadsInput"
