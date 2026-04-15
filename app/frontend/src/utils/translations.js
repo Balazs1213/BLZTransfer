@@ -86,6 +86,12 @@ export const translations = {
     getQrCode: "Get QR Code",
     validForMinutes: "Valid for (minutes)",
     maxDownloads: "Max allowed downloads",
+    replaceFileBtn: "Upload New File",
+    replaceWarningTitle: "Replace File",
+    replaceWarningText:
+      "Uploading a new file will permanently delete your current file. Continue?",
+    guestExpiryNote: "Guest links expire in 1 hour (fixed).",
+    guestDownloadNote: "Guest links are limited to 1 download.",
   },
   hu: {
     settings: "Beállítások",
@@ -175,6 +181,12 @@ export const translations = {
     getQrCode: "QR-kód lekérése",
     validForMinutes: "Érvényes (perc)",
     maxDownloads: "Max. letöltések száma",
+    replaceFileBtn: "Új fájl feltöltése",
+    replaceWarningTitle: "Fájl cseréje",
+    replaceWarningText:
+      "Új fájl feltöltése véglegesen törli a jelenlegit. Folytatja?",
+    guestExpiryNote: "A vendég linkek 1 óra múlva lejárnak (fix).",
+    guestDownloadNote: "A vendég linkek max. 1 alkalommal tölthetők le.",
   },
   de: {
     settings: "Einstellungen",
@@ -265,5 +277,11 @@ export const translations = {
     getQrCode: "QR-Code abrufen",
     validForMinutes: "Gültig für (Minuten)",
     maxDownloads: "Max. erlaubte Downloads",
+    replaceFileBtn: "Neue Datei hochladen",
+    replaceWarningTitle: "Datei ersetzen",
+    replaceWarningText:
+      "Beim Hochladen einer neuen Datei wird die aktuelle gelöscht. Fortfahren?",
+    guestExpiryNote: "Gast-Links laufen in 1 Stunde ab (fest).",
+    guestDownloadNote: "Gast-Links sind auf 1 Download beschränkt.",
   },
 };

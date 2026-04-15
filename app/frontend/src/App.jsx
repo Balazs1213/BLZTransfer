@@ -9,6 +9,10 @@ import { IoSettingsOutline } from "react-icons/io5";
 import SettingsModal from "./components/Settings/SettingsModal";
 import { translations } from "./utils/translations";
 
+const USER_FILES_API_URL =
+  "https://s2t1s0rl7g.execute-api.us-east-1.amazonaws.com/default/blz-get-user-files";
+const GUEST_FILE_STORAGE_KEY = "blz_guest_file";
+
 function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [language, setLanguage] = useState(
@@ -24,6 +28,8 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const [currentStatus, setCurrentStatus] = useState("Idle");
+  const [guestFileCount, setGuestFileCount] = useState(0);
+  const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
 
   useEffect(() => {
     localStorage.setItem("appLang", language);
@@ -55,6 +61,13 @@ function App() {
     setProgress(0);
     setStatusText("");
     setCurrentStatus("Idle");
+    setGuestFileCount(0);
+    setDashboardRefreshTrigger(0);
+    localStorage.removeItem(GUEST_FILE_STORAGE_KEY);
+  };
+
+  const handleDashboardRefresh = () => {
+    setDashboardRefreshTrigger((current) => current + 1);
   };
 
   const fileSelectHandler = (file) => {
@@ -128,6 +141,10 @@ function App() {
 
       if (pollingStatus === "Clean") {
         setStatusText(t("uploadSuccessful"));
+        if (isGuest) {
+          localStorage.setItem(GUEST_FILE_STORAGE_KEY, generatedFileName);
+          handleDashboardRefresh();
+        }
         setSelectedFile(null);
       } else if (pollingStatus === "Infected") {
         setStatusText(t("uploadAborted"));
@@ -225,14 +242,17 @@ function App() {
               </div>
 
               <div className="section-content">
-                <FilePicker
-                  onFileSelect={fileSelectHandler}
-                  isUploading={isUploading}
-                  progress={progress}
-                  statusText={statusText}
-                  currentStatus={currentStatus}
-                  t={t}
-                />
+                {(!isGuest || guestFileCount < 1) && (
+                  <FilePicker
+                    onFileSelect={fileSelectHandler}
+                    onUploadSuccess={handleDashboardRefresh}
+                    isUploading={isUploading}
+                    progress={progress}
+                    statusText={statusText}
+                    currentStatus={currentStatus}
+                    t={t}
+                  />
+                )}
 
                 {selectedFile && !isUploading && progress === 0 && (
                   <div className="file-ready-action">
@@ -243,6 +263,16 @@ function App() {
                       {t("startUpload")}
                     </Button>
                   </div>
+                )}
+
+                {isGuest && (
+                  <FileDashboard
+                    userId={currentUsername}
+                    apiUrl={USER_FILES_API_URL}
+                    t={t}
+                    onFilesChange={setGuestFileCount}
+                    refreshTrigger={dashboardRefreshTrigger}
+                  />
                 )}
               </div>
             </section>
@@ -258,7 +288,7 @@ function App() {
               <div className="section-content">
                 <FileDashboard
                   userId={currentUsername}
-                  apiUrl="https://s2t1s0rl7g.execute-api.us-east-1.amazonaws.com/default/blz-get-user-files"
+                  apiUrl={USER_FILES_API_URL}
                   t={t}
                 />
               </div>

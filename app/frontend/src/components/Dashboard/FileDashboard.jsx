@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
 import { BsTrashFill } from "react-icons/bs";
 import { QRCodeSVG } from "qrcode.react";
@@ -59,9 +59,18 @@ const formatRemaining = (remainingMs) => {
   return `${minutes}:${seconds}`;
 };
 
-const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
+const GUEST_FILE_STORAGE_KEY = "blz_guest_file";
+
+const FileDashboard = ({
+  userId = "guest",
+  apiUrl,
+  t = (key) => key,
+  onFilesChange,
+  refreshTrigger = 0,
+}) => {
   const executeDownloadBaseUrl =
     "https://h8sikvnc4a.execute-api.us-east-1.amazonaws.com/default/blz-execute-download";
+  const isGuestUser = userId === "guest";
 
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +84,7 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
   const [modalError, setModalError] = useState("");
   const [copyFeedback, setCopyFeedback] = useState("");
   const [fileToDelete, setFileToDelete] = useState(null);
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -84,44 +94,52 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
+  const handleRefresh = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-    const loadFiles = async () => {
-      setLoading(true);
-      setError("");
+    try {
+      const response = await getUserFiles(apiUrl, userId);
+      const normalized = Array.isArray(response)
+        ? response.map(normalizeFile)
+        : [];
 
-      try {
-        const response = await getUserFiles(apiUrl, userId);
-        const normalized = Array.isArray(response)
-          ? response.map(normalizeFile)
-          : [];
+      const visibleFiles = isGuestUser
+        ? (() => {
+            const guestFileName = localStorage.getItem(GUEST_FILE_STORAGE_KEY);
+            if (!guestFileName) return [];
+            return normalized.filter((file) => file.fileName === guestFileName);
+          })()
+        : normalized;
 
-        if (isMounted) {
-          setFiles(normalized);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err?.message || "Failed to load files.");
-          setFiles([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (
+        isGuestUser &&
+        localStorage.getItem(GUEST_FILE_STORAGE_KEY) &&
+        visibleFiles.length === 0
+      ) {
+        localStorage.removeItem(GUEST_FILE_STORAGE_KEY);
       }
-    };
 
-    loadFiles();
+      setFiles(visibleFiles);
+      onFilesChange?.(visibleFiles.length);
+    } catch (err) {
+      setError(err?.message || "Failed to load files.");
+      setFiles([]);
+      onFilesChange?.(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl, isGuestUser, onFilesChange, userId]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [apiUrl, userId]);
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh, refreshTrigger]);
 
   const handleGenerate = async (file, type, durationMinutes, downloads) => {
-    const safeMinutes = Math.max(1, Number(durationMinutes) || 1);
-    const safeDownloads = Math.max(1, Number(downloads) || 1);
+    const safeMinutes = isGuestUser
+      ? 60
+      : Math.max(1, Number(durationMinutes) || 1);
+    const safeDownloads = isGuestUser ? 1 : Math.max(1, Number(downloads) || 1);
     const fileId = getFileId(file);
     const expiresAt = Date.now() + safeMinutes * 60000;
 
@@ -226,6 +244,10 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
       setModalError("");
       await deleteFile(userId, fileToDelete.fileName);
 
+      if (isGuestUser) {
+        localStorage.removeItem(GUEST_FILE_STORAGE_KEY);
+      }
+
       setFiles((currentFiles) =>
         currentFiles.filter((file) => file.fileName !== fileToDelete.fileName),
       );
@@ -242,8 +264,30 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
           : currentSelected,
       );
       setFileToDelete(null);
+      onFilesChange?.((current) =>
+        Math.max(0, (typeof current === "number" ? current : files.length) - 1),
+      );
     } catch (err) {
       setModalError(err?.message || "Failed to delete file.");
+    }
+  };
+
+  const confirmReplaceFile = async () => {
+    const guestFileName = localStorage.getItem(GUEST_FILE_STORAGE_KEY);
+    if (!guestFileName) {
+      setShowReplaceModal(false);
+      return;
+    }
+
+    try {
+      await deleteFile("guest", guestFileName);
+      localStorage.removeItem(GUEST_FILE_STORAGE_KEY);
+      setShowReplaceModal(false);
+      setSelectedFile(null);
+      await handleRefresh();
+    } catch (err) {
+      setModalError(err?.message || "Failed to delete file.");
+      setShowReplaceModal(false);
     }
   };
 
@@ -273,11 +317,23 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
   }
 
   if (!hasFiles) {
-    return <section className={styles.state}>{t("noFilesFound")}</section>;
+    return !isGuestUser ? <section className={styles.state}>{t("noFilesFound")}</section> : null;
   }
 
   return (
     <>
+      {isGuestUser && files.length === 1 && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <button
+            type="button"
+            className={styles.regenerateBtn}
+            onClick={() => setShowReplaceModal(true)}
+          >
+            {t("replaceFileBtn")}
+          </button>
+        </div>
+      )}
+
       <section className={styles.dashboard}>
         {files.map((file, index) => {
           const labels = toArray(file.aiLabels).filter(
@@ -361,7 +417,7 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
               )}
 
               <div className={styles.cardActions}>
-                {isActive && (
+                {isActive && !isGuestUser && (
                   <button
                     type="button"
                     className={styles.revokeBtn}
@@ -374,18 +430,24 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
                   </button>
                 )}
 
-                {isExpired && (
-                  <button
-                    type="button"
-                    className={styles.regenerateBtn}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedFile(file);
-                    }}
-                  >
-                    {t("getLink")}
-                  </button>
-                )}
+                {!(
+                  userId === "guest" &&
+                  (file.status?.toLowerCase() === "revoked" ||
+                    file.status?.toLowerCase() === "not active" ||
+                    file.status?.toLowerCase() === "notactive")
+                ) &&
+                  isExpired && (
+                    <button
+                      type="button"
+                      className={styles.regenerateBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFile(file);
+                      }}
+                    >
+                      {t("getLink")}
+                    </button>
+                  )}
 
                 <button
                   type="button"
@@ -454,7 +516,8 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
               <select
                 id="durationSelect"
                 className={styles.durationSelect}
-                value={selectedDuration}
+                value={isGuestUser ? 60 : selectedDuration}
+                disabled={isGuestUser}
                 onChange={(e) =>
                   setSelectedDuration(Number(e.target.value) || 1)
                 }
@@ -464,6 +527,10 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
                 <option value={15}>15</option>
                 <option value={60}>60</option>
               </select>
+
+              {isGuestUser && (
+                <p className={styles.metaRow}>{t("guestExpiryNote")}</p>
+              )}
 
               <label
                 htmlFor="maxDownloadsInput"
@@ -477,11 +544,16 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
                 min={1}
                 step={1}
                 className={styles.durationSelect}
-                value={maxDownloads}
+                value={isGuestUser ? 1 : maxDownloads}
+                disabled={isGuestUser}
                 onChange={(e) =>
                   setMaxDownloads(Math.max(1, Number(e.target.value) || 1))
                 }
               />
+
+              {isGuestUser && (
+                <p className={styles.metaRow}>{t("guestDownloadNote")}</p>
+              )}
             </div>
 
             {modalError && <p className={styles.modalError}>{modalError}</p>}
@@ -524,36 +596,45 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
               </div>
             ) : (
               <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.actionBtn}
-                  onClick={() =>
-                    handleGenerate(
-                      selectedFile,
-                      "link",
-                      selectedDuration,
-                      maxDownloads,
-                    )
-                  }
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? t("generating") : t("getLink")}
-                </button>
-                <button
-                  type="button"
-                  className={styles.actionBtn}
-                  onClick={() =>
-                    handleGenerate(
-                      selectedFile,
-                      "qr",
-                      selectedDuration,
-                      maxDownloads,
-                    )
-                  }
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? t("generating") : t("getQrCode")}
-                </button>
+                {!(
+                  userId === "guest" &&
+                  (selectedFile?.status?.toLowerCase() === "revoked" ||
+                    selectedFile?.status?.toLowerCase() === "not active" ||
+                    selectedFile?.status?.toLowerCase() === "notactive")
+                ) && (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() =>
+                        handleGenerate(
+                          selectedFile,
+                          "link",
+                          isGuestUser ? 60 : selectedDuration,
+                          isGuestUser ? 1 : maxDownloads,
+                        )
+                      }
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? t("generating") : t("getLink")}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() =>
+                        handleGenerate(
+                          selectedFile,
+                          "qr",
+                          isGuestUser ? 60 : selectedDuration,
+                          isGuestUser ? 1 : maxDownloads,
+                        )
+                      }
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? t("generating") : t("getQrCode")}
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
@@ -605,6 +686,38 @@ const FileDashboard = ({ userId = "guest", apiUrl, t = (key) => key }) => {
                 onClick={confirmAndDelete}
               >
                 {t("delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReplaceModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowReplaceModal(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className={styles.modalTitle}>{t("replaceWarningTitle")}</h3>
+            <p className={styles.metaRow}>{t("replaceWarningText")}</p>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.copyBtn}
+                onClick={() => setShowReplaceModal(false)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={confirmReplaceFile}
+              >
+                {t("replaceFileBtn")}
               </button>
             </div>
           </div>
