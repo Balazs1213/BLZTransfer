@@ -143,7 +143,8 @@ const FileDashboard = ({
   const [fileToDelete, setFileToDelete] = useState(null);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [activeStateFilter, setActiveStateFilter] = useState("ALL");
+  const [avStatusFilter, setAvStatusFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [extFilter, setExtFilter] = useState("ALL");
   const [sortOrder, setSortOrder] = useState("NEWEST");
@@ -377,8 +378,31 @@ const FileDashboard = ({
   }, [files]);
 
   const availableExtensions = useMemo(() => {
+    const filesForExt =
+      categoryFilter === "ALL"
+        ? files
+        : files.filter((file) => file.category === categoryFilter);
+
     return Array.from(
-      new Set(files.map((file) => getFileExtension(file)).filter(Boolean)),
+      new Set(
+        filesForExt
+          .map((file) => {
+            const sourceName = String(
+              file?.fileName || file?.originalName || "",
+            );
+            const parts = sourceName.split(".");
+            return parts.length > 1 ? `.${parts.pop().toLowerCase()}` : "";
+          })
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [files, categoryFilter]);
+
+  const uniqueAvStatuses = useMemo(() => {
+    return Array.from(
+      new Set(
+        files.map((file) => String(file?.status || "").trim()).filter(Boolean),
+      ),
     ).sort((a, b) => a.localeCompare(b));
   }, [files]);
 
@@ -399,19 +423,26 @@ const FileDashboard = ({
         tags.some((tag) => tag.includes(normalizedSearch));
 
       const inactive = getIsInactive(file);
-      const statusMatches =
-        statusFilter === "ALL" ||
-        (statusFilter === "ACTIVE" && !inactive) ||
-        (statusFilter === "INACTIVE" && inactive);
+      const activeStateMatches =
+        activeStateFilter === "ALL" ||
+        (activeStateFilter === "ACTIVE" && !inactive) ||
+        (activeStateFilter === "INACTIVE" && inactive);
+
+      const avStatusMatches =
+        avStatusFilter === "ALL" || file?.status === avStatusFilter;
 
       const categoryMatches =
         categoryFilter === "ALL" || file?.category === categoryFilter;
 
       const extensionMatches =
-        extFilter === "ALL" || getFileExtension(file) === extFilter;
+        extFilter === "ALL" || `.${getFileExtension(file)}` === extFilter;
 
       return (
-        searchMatches && statusMatches && categoryMatches && extensionMatches
+        searchMatches &&
+        activeStateMatches &&
+        avStatusMatches &&
+        categoryMatches &&
+        extensionMatches
       );
     });
 
@@ -425,7 +456,15 @@ const FileDashboard = ({
 
       return secondTimestamp - firstTimestamp;
     });
-  }, [files, searchTerm, statusFilter, categoryFilter, extFilter, sortOrder]);
+  }, [
+    files,
+    searchTerm,
+    activeStateFilter,
+    avStatusFilter,
+    categoryFilter,
+    extFilter,
+    sortOrder,
+  ]);
 
   if (loading) {
     return <section className={styles.state}>{t("loadingFiles")}</section>;
@@ -484,70 +523,116 @@ const FileDashboard = ({
             }}
           />
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.7rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-            }}
-          >
-            <option value="ALL">{t("allStatuses")}</option>
-            <option value="ACTIVE">{t("active")}</option>
-            <option value="INACTIVE">{t("inactive")}</option>
-          </select>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterState")}
+            </span>
+            <select
+              value={activeStateFilter}
+              onChange={(e) => setActiveStateFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allStatuses")}</option>
+              <option value="ACTIVE">{t("active")}</option>
+              <option value="INACTIVE">{t("inactive")}</option>
+            </select>
+          </label>
 
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.7rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-            }}
-          >
-            <option value="ALL">{t("allCategories")}</option>
-            {availableCategories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterAvStatus")}
+            </span>
+            <select
+              value={avStatusFilter}
+              onChange={(e) => setAvStatusFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allAvStatuses")}</option>
+              {uniqueAvStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {translateStatusValue(status)}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <select
-            value={extFilter}
-            onChange={(e) => setExtFilter(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.7rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-            }}
-          >
-            <option value="ALL">{t("allExtensions")}</option>
-            {availableExtensions.map((extension) => (
-              <option key={extension} value={extension}>
-                .{extension}
-              </option>
-            ))}
-          </select>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterCategoryLabel")}
+            </span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setExtFilter("ALL");
+              }}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allCategories")}</option>
+              {availableCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.7rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-            }}
-          >
-            <option value="NEWEST">{t("sortNewest")}</option>
-            <option value="OLDEST">{t("sortOldest")}</option>
-          </select>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterExtLabel")}
+            </span>
+            <select
+              value={extFilter}
+              onChange={(e) => setExtFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allExtensions")}</option>
+              {availableExtensions.map((extension) => (
+                <option key={extension} value={extension}>
+                  {extension}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterSortLabel")}
+            </span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="NEWEST">{t("sortNewest")}</option>
+              <option value="OLDEST">{t("sortOldest")}</option>
+            </select>
+          </label>
         </div>
 
         {filteredAndSortedFiles.map((file, index) => {

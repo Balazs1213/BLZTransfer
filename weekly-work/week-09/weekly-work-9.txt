@@ -1,0 +1,2 @@
+-szűrési logika bevezetése
+-classifier lambda kiszervezése .NET-be és analizálás javítása (jól tageli fel a fájlokat típus szerint)
