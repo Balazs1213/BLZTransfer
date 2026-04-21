@@ -1,4 +1,4 @@
 -Frontend alakítgatása, több nyelvűség bevezetése
--Fájl törlés bevezetése, mind a frontendden, mind a backendden a delete-file lambddával
+-Fájl törlés bevezetése, mind a frontenden, mind a backendden a delete-file lambddával
 -Guest felület elkészítése
--Regisztrációnál hibék jelzése
+-Regisztrációnál hibák jelzése

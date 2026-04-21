@@ -10,6 +10,53 @@ const toArray = (value) => {
   return [];
 };
 
+const toNumberOrNull = (value) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const getFileExtension = (file) => {
+  const sourceName = String(file?.fileName || file?.originalName || "");
+  const dotIndex = sourceName.lastIndexOf(".");
+  if (dotIndex <= -1 || dotIndex === sourceName.length - 1) {
+    return "";
+  }
+
+  return sourceName.slice(dotIndex + 1).toLowerCase();
+};
+
+const getUploadTimestamp = (file) => {
+  const date = new Date(file?.uploadDate || "");
+  const timestamp = date.getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const getIsInactive = (file) => {
+  const normalizedStatus = String(file?.status || "")
+    .trim()
+    .toLowerCase();
+  const revokedFlag =
+    file?.isRevoked === true ||
+    file?.revoked === true ||
+    normalizedStatus === "revoked" ||
+    normalizedStatus === "inactive" ||
+    normalizedStatus === "not active" ||
+    normalizedStatus === "notactive";
+
+  const numericLimits = [
+    file?.remainingDownloads,
+    file?.downloadsLeft,
+    file?.downloadLimit,
+    file?.maxDownloads,
+    file?.maxAllowedDownloads,
+  ]
+    .map(toNumberOrNull)
+    .filter((value) => value !== null);
+
+  const hasExhaustedLimit = numericLimits.some((value) => value <= 0);
+  return revokedFlag || hasExhaustedLimit;
+};
+
 const normalizeFile = (file) => {
   const safeFile = file && typeof file === "object" ? file : {};
 
@@ -22,7 +69,17 @@ const normalizeFile = (file) => {
     status: safeFile.status ?? safeFile.Status ?? "Unknown",
     category: safeFile.category ?? safeFile.Category ?? "Uncategorized",
     aiLabels: toArray(safeFile.aiLabels ?? safeFile.AiLabels),
+    tags: toArray(safeFile.tags ?? safeFile.Tags),
     extractedText: safeFile.extractedText ?? safeFile.ExtractedText ?? "",
+    maxDownloads: safeFile.maxDownloads ?? safeFile.MaxDownloads ?? null,
+    remainingDownloads:
+      safeFile.remainingDownloads ?? safeFile.RemainingDownloads ?? null,
+    downloadsLeft: safeFile.downloadsLeft ?? safeFile.DownloadsLeft ?? null,
+    downloadLimit: safeFile.downloadLimit ?? safeFile.DownloadLimit ?? null,
+    maxAllowedDownloads:
+      safeFile.maxAllowedDownloads ?? safeFile.MaxAllowedDownloads ?? null,
+    revoked: safeFile.revoked ?? safeFile.Revoked ?? false,
+    isRevoked: safeFile.isRevoked ?? safeFile.IsRevoked ?? false,
   };
 };
 
@@ -85,6 +142,11 @@ const FileDashboard = ({
   const [copyFeedback, setCopyFeedback] = useState("");
   const [fileToDelete, setFileToDelete] = useState(null);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [extFilter, setExtFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -304,6 +366,67 @@ const FileDashboard = ({
 
   const hasFiles = useMemo(() => files.length > 0, [files]);
 
+  const availableCategories = useMemo(() => {
+    return Array.from(
+      new Set(
+        files
+          .map((file) => String(file?.category || "").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [files]);
+
+  const availableExtensions = useMemo(() => {
+    return Array.from(
+      new Set(files.map((file) => getFileExtension(file)).filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [files]);
+
+  const filteredAndSortedFiles = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const filtered = files.filter((file) => {
+      const fileName = String(file?.fileName || "").toLowerCase();
+      const originalName = String(file?.originalName || "").toLowerCase();
+      const tags = [...toArray(file?.tags), ...toArray(file?.aiLabels)]
+        .filter((tag) => typeof tag === "string")
+        .map((tag) => tag.toLowerCase());
+
+      const searchMatches =
+        !normalizedSearch ||
+        fileName.includes(normalizedSearch) ||
+        originalName.includes(normalizedSearch) ||
+        tags.some((tag) => tag.includes(normalizedSearch));
+
+      const inactive = getIsInactive(file);
+      const statusMatches =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && !inactive) ||
+        (statusFilter === "INACTIVE" && inactive);
+
+      const categoryMatches =
+        categoryFilter === "ALL" || file?.category === categoryFilter;
+
+      const extensionMatches =
+        extFilter === "ALL" || getFileExtension(file) === extFilter;
+
+      return (
+        searchMatches && statusMatches && categoryMatches && extensionMatches
+      );
+    });
+
+    return filtered.sort((firstFile, secondFile) => {
+      const firstTimestamp = getUploadTimestamp(firstFile);
+      const secondTimestamp = getUploadTimestamp(secondFile);
+
+      if (sortOrder === "OLDEST") {
+        return firstTimestamp - secondTimestamp;
+      }
+
+      return secondTimestamp - firstTimestamp;
+    });
+  }, [files, searchTerm, statusFilter, categoryFilter, extFilter, sortOrder]);
+
   if (loading) {
     return <section className={styles.state}>{t("loadingFiles")}</section>;
   }
@@ -317,7 +440,9 @@ const FileDashboard = ({
   }
 
   if (!hasFiles) {
-    return !isGuestUser ? <section className={styles.state}>{t("noFilesFound")}</section> : null;
+    return !isGuestUser ? (
+      <section className={styles.state}>{t("noFilesFound")}</section>
+    ) : null;
   }
 
   return (
@@ -335,7 +460,97 @@ const FileDashboard = ({
       )}
 
       <section className={styles.dashboard}>
-        {files.map((file, index) => {
+        <div
+          style={{
+            gridColumn: "1 / -1",
+            display: "grid",
+            gap: "0.75rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            style={{
+              gridColumn: "1 / -1",
+              width: "100%",
+              padding: "0.65rem 0.75rem",
+              borderRadius: "0.5rem",
+              border: "1px solid #d1d5db",
+              fontSize: "0.95rem",
+            }}
+          />
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.6rem 0.7rem",
+              borderRadius: "0.5rem",
+              border: "1px solid #d1d5db",
+            }}
+          >
+            <option value="ALL">{t("allStatuses")}</option>
+            <option value="ACTIVE">{t("active")}</option>
+            <option value="INACTIVE">{t("inactive")}</option>
+          </select>
+
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.6rem 0.7rem",
+              borderRadius: "0.5rem",
+              border: "1px solid #d1d5db",
+            }}
+          >
+            <option value="ALL">{t("allCategories")}</option>
+            {availableCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={extFilter}
+            onChange={(e) => setExtFilter(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.6rem 0.7rem",
+              borderRadius: "0.5rem",
+              border: "1px solid #d1d5db",
+            }}
+          >
+            <option value="ALL">{t("allExtensions")}</option>
+            {availableExtensions.map((extension) => (
+              <option key={extension} value={extension}>
+                .{extension}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.6rem 0.7rem",
+              borderRadius: "0.5rem",
+              border: "1px solid #d1d5db",
+            }}
+          >
+            <option value="NEWEST">{t("sortNewest")}</option>
+            <option value="OLDEST">{t("sortOldest")}</option>
+          </select>
+        </div>
+
+        {filteredAndSortedFiles.map((file, index) => {
           const labels = toArray(file.aiLabels).filter(
             (label) => typeof label === "string" && label.trim(),
           );
