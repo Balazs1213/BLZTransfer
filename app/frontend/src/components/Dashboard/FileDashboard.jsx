@@ -360,6 +360,13 @@ const FileDashboard = ({
     return translated !== normalized ? translated : value || t("n/a");
   };
 
+  const translateCategoryValue = (value) => {
+    const rawCategory = String(value ?? "").trim() || "N/A";
+    const key = `cat_${rawCategory}`;
+    const translated = t(key);
+    return translated !== key ? translated : rawCategory;
+  };
+
   const renderActiveStateLabel = (status, type, remainingSeconds) => {
     const typeLabel = type === "qr" ? "QR" : "Link";
     return `${t(status)} (${typeLabel}) - ${formatRemaining(remainingSeconds * 1000)}`;
@@ -583,10 +590,10 @@ const FileDashboard = ({
                 border: "1px solid #d1d5db",
               }}
             >
-              <option value="ALL">{t("allCategories")}</option>
+              <option value="ALL">{t("cat_ALL")}</option>
               {availableCategories.map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {translateCategoryValue(category)}
                 </option>
               ))}
             </select>
@@ -696,7 +703,7 @@ const FileDashboard = ({
               </p>
               <p className={styles.metaRow}>
                 <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
-                {file.category || t("n/a")}
+                {translateCategoryValue(file.category)}
               </p>
 
               {labels.length > 0 && (
@@ -802,7 +809,7 @@ const FileDashboard = ({
             </p>
             <p className={styles.metaRow}>
               <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
-              {selectedFile.category || t("n/a")}
+              {translateCategoryValue(selectedFile.category)}
             </p>
             <p className={styles.metaRow}>
               <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}

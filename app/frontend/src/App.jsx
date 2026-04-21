@@ -81,7 +81,7 @@ function App() {
     setIsUploading(true);
     setProgress(10);
     setCurrentStatus("Uploading");
-    setStatusText(t("preparingUpload"));
+    setStatusText(`${t("msg_uploading")} (10%)`);
 
     const API_ENDPOINT =
       "https://h4g8mvrgwd.execute-api.us-east-1.amazonaws.com/dev/get-upload-link";
@@ -105,7 +105,7 @@ function App() {
       const generatedFileName = apiData.fileName || apiData.FileName;
 
       setProgress(30);
-      setStatusText(t("uploadingToS3"));
+      setStatusText(`${t("msg_uploading")} (30%)`);
 
       const s3Response = await fetch(uploadUrl, {
         method: "PUT",
@@ -116,7 +116,7 @@ function App() {
       if (!s3Response.ok) throw new Error("S3 upload failed.");
 
       setProgress(50);
-      setStatusText(t("virusScanInProgress"));
+      setStatusText(`${t("msg_processing")} (50%)`);
       setCurrentStatus("Scanning");
 
       let pollingStatus = "Scanning";
@@ -133,6 +133,7 @@ function App() {
         if (pollingStatus === "Scanning" && fakeProgress < 90) {
           fakeProgress += 5;
           setProgress(fakeProgress);
+          setStatusText(`${t("msg_processing")} (${fakeProgress}%)`);
         }
       }
 
@@ -140,21 +141,21 @@ function App() {
       setProgress(100);
 
       if (pollingStatus === "Clean") {
-        setStatusText(t("uploadSuccessful"));
+        setStatusText(t("msg_successClean"));
         if (isGuest) {
           localStorage.setItem(GUEST_FILE_STORAGE_KEY, generatedFileName);
           handleDashboardRefresh();
         }
         setSelectedFile(null);
       } else if (pollingStatus === "Infected") {
-        setStatusText(t("uploadAborted"));
+        setStatusText(t("msg_infected"));
       } else {
-        setStatusText(t("scanError"));
+        setStatusText(t("msg_error"));
         setCurrentStatus("Error");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      setStatusText(`Error: ${error.message}`);
+      setStatusText(t("msg_error"));
       setCurrentStatus("Error");
       setProgress(0);
     } finally {
