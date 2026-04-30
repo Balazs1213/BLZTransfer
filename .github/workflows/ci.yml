@@ -1,0 +1,55 @@
+name: BLZ Project CI Pipeline
+
+# Ez a blokk mondja meg, mikor induljon el a pipeline (minden push-ra a master/main ágon)
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+    branches: ["master", "main"]
+
+jobs:
+  # 1. FELADAT: A Backend (C#) ellenőrzése és fordítása
+  build-backend:
+    name: Build .NET Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        working-directory: ./app/backend
+        run: dotnet restore
+
+      - name: Build backend
+        working-directory: ./app/backend
+        run: dotnet build --no-restore --configuration Release
+
+    # Ide fogjuk beszúrni a Unit Teszteket a következő lépésben!
+
+  # 2. FELADAT: A Frontend (React) ellenőrzése és fordítása
+  build-frontend:
+    name: Build React Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # LTS verzió
+
+      - name: Install dependencies
+        working-directory: ./app/frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: ./app/frontend
+        run: npm run build

@@ -16,3 +16,8 @@ HIBA JAVÍTÁS:
 STEP FUNCTIONS maximum 80 karakteres névvel renddelkező futásokat engedélyez csak, ezért kiszerveztem a 
 fájlt .NET-be a vscodeba és javítottam ezt az eshetőséget
 -textract szolgáltatás pixelekkel dolgozik ezért a txt-t nem tudja ai címkékkel ellátni ennek javítás a amegfellő lambdában
+
+TESTEK:
+-happy path tesztet implementáltam
+-EICAR fájl feltöltéssét is implementáltam, inmemory tárolom el a fájl tartlamát.
+-github actions tesztelés bevezetése, mely a kódok fordulását ellenőrzi
