@@ -81,7 +81,7 @@ function App() {
     setIsUploading(true);
     setProgress(10);
     setCurrentStatus("Uploading");
-    setStatusText(`${t("msg_uploading")} (10%)`);
+    setStatusText(t("msg_uploading"));
 
     const API_ENDPOINT =
       "https://h4g8mvrgwd.execute-api.us-east-1.amazonaws.com/dev/get-upload-link";
@@ -105,7 +105,7 @@ function App() {
       const generatedFileName = apiData.fileName || apiData.FileName;
 
       setProgress(30);
-      setStatusText(`${t("msg_uploading")} (30%)`);
+      setStatusText(t("msg_uploading"));
 
       const s3Response = await fetch(uploadUrl, {
         method: "PUT",
@@ -116,7 +116,7 @@ function App() {
       if (!s3Response.ok) throw new Error("S3 upload failed.");
 
       setProgress(50);
-      setStatusText(`${t("msg_processing")} (50%)`);
+      setStatusText(t("msg_processing"));
       setCurrentStatus("Scanning");
 
       let pollingStatus = "Scanning";
@@ -133,7 +133,7 @@ function App() {
         if (pollingStatus === "Scanning" && fakeProgress < 90) {
           fakeProgress += 5;
           setProgress(fakeProgress);
-          setStatusText(`${t("msg_processing")} (${fakeProgress}%)`);
+          setStatusText(t("msg_processing"));
         }
       }
 
