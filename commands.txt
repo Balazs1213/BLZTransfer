@@ -3,3 +3,6 @@ code "C:\Users\User\.aws\credentials"
 
 Repomix:
 npx repomix --ignore "**/node_modules/**,**/bin/**,**/obj/**,**/.git/**,**/dist/**" --output repomix-output.md
+
+Fronetend-bucektbe feltöltés:
+aws s3 sync dist/ s3://blz-frontend-bucket-w1srf8 --delete

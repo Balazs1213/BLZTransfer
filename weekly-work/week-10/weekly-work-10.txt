@@ -1,0 +1,18 @@
+Titkosístás bevezetése:
+-kliens oldali (E2E) tiktosítás nem lehetséges, mivel ebben az esetben az aws-be is csak egy adathalmaz kerülne bele, így azon nem futatható a fájlelemzés
+-ami már megvan:
+                -In-Transit Encryption: frontedntől az aws-be érkezkő adatfolyamat HTTPS-en keresztül érkezik
+                -SSE-S3: az aws s3 alapértlmezetten minden újonnan feltölött fájlt titkosít a lemezein (AES-256 algoritmussal)
+-amit be lehet vezetni:
+                -A: szerver oldali titkosítás AWS KMS-el, alapértelmezett S3 kulcs helyett ezzel lehet generálni saját kulcsot
+                -B: Link-szintű védelem: a feltöltő megadhat egy jelszavat, ezt DynamoDB-be hashelve (bcrypt eltároljuk), letöltés esetén elkéri a felület.
+                Ennek az alkalamzás esetében nincsen sok értelme, mivel nincs letöltő felület.
+
+-Végül az A mellett döntöttem.
+
+
+HIBA JAVÍTÁS:
+-hosszú nevű fájlok esetében az sfn trigger generálta a nevet a fájl név+iddőbélyeggel, azonban a 
+STEP FUNCTIONS maximum 80 karakteres névvel renddelkező futásokat engedélyez csak, ezért kiszerveztem a 
+fájlt .NET-be a vscodeba és javítottam ezt az eshetőséget
+-textract szolgáltatás pixelekkel dolgozik ezért a txt-t nem tudja ai címkékkel ellátni ennek javítás a amegfellő lambdában
