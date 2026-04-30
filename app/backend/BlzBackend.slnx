@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Blz.CheckFileStatus/Blz.CheckFileStatus.csproj" />
+    <Project Path="src/Blz.DeleteFile/Blz.DeleteFile.csproj" />
+    <Project Path="src/Blz.ExecuteDownload/Blz.ExecuteDownload.csproj" />
+    <Project Path="src/Blz.FileClassifier/Blz.FileClassifier.csproj" />
+    <Project Path="src/Blz.GetDownloadUrl/Blz.GetDownloadUrl.csproj" />
+    <Project Path="src/Blz.GetPresignedUrl/Blz.GetPresignedUrl.csproj" />
+    <Project Path="src/Blz.GetUserFiles/Blz.GetUserFiles.csproj" />
+    <Project Path="src/Blz.SfnTrigger/Blz.SfnTrigger.csproj" />
+    <Project Path="src/Blz.TextractAnalyzer/Blz.TextractAnalyzer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Blz.IntegrationTests/Blz.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
