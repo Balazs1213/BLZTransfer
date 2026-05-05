@@ -1,0 +1,1 @@
+50 MB-os venddég fájl méret beállítása, kettős véddelemmel frontend és backend oldalon is.

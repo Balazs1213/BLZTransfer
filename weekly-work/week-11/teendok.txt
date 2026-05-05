@@ -1,0 +1,5 @@
+Letöltő felület elkészíteése, jelszó elkéréssel
+Hosszú fájl nevek megváltoztatása (uniqueID + metaadat-ba tárolt fájl név)
+Beszámolók elkezdése
+Pár tezt írása
+

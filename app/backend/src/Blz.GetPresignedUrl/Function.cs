@@ -36,6 +36,13 @@ public class Function
 
             // Ha a frontend nem küld UserId-t, alapértelmezetten "guest" lesz
             var userId = string.IsNullOrEmpty(request.UserId) ? "guest" : request.UserId;
+
+            long maxGuestSize = 50 * 1024 * 1024; // 50 MB bájtban
+            if (userId == "guest" && request.FileSize > maxGuestSize)
+            {
+                throw new Exception("Guest users are limited to 50 MB uploads. Please log in for larger files.");
+            }
+
             var uniqueFileName = $"{userId}/{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{request.FileName}";
             
             // 1. Pre-signed URL generálása

@@ -116,6 +116,8 @@ export const translations = {
       "Uploading a new file will permanently delete your current file. Continue?",
     guestExpiryNote: "Guest links expire in 1 hour (fixed).",
     guestDownloadNote: "Guest links are limited to 1 download.",
+    error_guest_file_too_large:
+      "Guest users can upload files up to 50 MB. Please log in for larger files.",
   },
   hu: {
     settings: "Beállítások",
@@ -235,6 +237,8 @@ export const translations = {
       "Új fájl feltöltése véglegesen törli a jelenlegit. Folytatja?",
     guestExpiryNote: "A vendég linkek 1 óra múlva lejárnak (fix).",
     guestDownloadNote: "A vendég linkek max. 1 alkalommal tölthetők le.",
+    error_guest_file_too_large:
+      "Vendégként maximum 50 MB-os fájlt tölthetsz fel. Kérlek, jelentkezz be!",
   },
   de: {
     settings: "Einstellungen",
@@ -355,5 +359,7 @@ export const translations = {
       "Beim Hochladen einer neuen Datei wird die aktuelle gelöscht. Fortfahren?",
     guestExpiryNote: "Gast-Links laufen in 1 Stunde ab (fest).",
     guestDownloadNote: "Gast-Links sind auf 1 Download beschränkt.",
+    error_guest_file_too_large:
+      "Gäste können Dateien bis zu 50 MB hochladen. Bitte loggen Sie sich ein.",
   },
 };

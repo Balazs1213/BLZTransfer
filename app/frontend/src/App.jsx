@@ -71,6 +71,13 @@ function App() {
   };
 
   const fileSelectHandler = (file) => {
+    const MAX_GUEST_SIZE = 50 * 1024 * 1024;
+
+    if (userType === "guest" && file.size > MAX_GUEST_SIZE) {
+      alert(t("error_guest_file_too_large"));
+      return;
+    }
+
     setSelectedFile(file);
     setProgress(0);
     setStatusText("");

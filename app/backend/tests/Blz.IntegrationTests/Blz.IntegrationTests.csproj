@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.TestUtilities" Version="3.0.1" />
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.17.11" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.22.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
@@ -24,6 +25,10 @@
     <Content Include="..\file-for-tests\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Blz.GetPresignedUrl\Blz.GetPresignedUrl.csproj" />
   </ItemGroup>
 
 </Project>
