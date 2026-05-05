@@ -413,14 +413,24 @@ const FileCardGrid = ({
     const cardClasses = [styles.card];
     if (isActive) cardClasses.push(styles.cardActive);
     if (isExpired) cardClasses.push(styles.cardExpired);
+    const cardProps = {
+      role: "button",
+      tabIndex: 0,
+      onClick: () => setSelectedFile(file),
+      onKeyDown: (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setSelectedFile(file);
+        }
+      },
+      "aria-label": `Open details for ${file.originalName}`,
+    };
 
     return (
-      <button
-        type="button"
+      <article
         key={cardKey}
         className={`${cardClasses.join(" ")} ${styles.cardButton}`}
-        onClick={() => setSelectedFile(file)}
-        aria-label={`Open details for ${file.originalName}`}
+        {...cardProps}
       >
         <h3 className={styles.fileName}>{file.originalName}</h3>
 
@@ -544,7 +554,7 @@ const FileCardGrid = ({
             />
           </button>
         </div>
-      </button>
+      </article>
     );
   });
 };
@@ -1273,11 +1283,18 @@ const FileDashboard = ({
           if (isExpired) cardClasses.push(styles.cardExpired);
 
           return (
-            <button
-              type="button"
+            <article
               key={cardKey}
               className={`${cardClasses.join(" ")} ${styles.cardButton}`}
+              role="button"
+              tabIndex={0}
               onClick={() => setSelectedFile(file)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedFile(file);
+                }
+              }}
               aria-label={`Open details for ${file.originalName}`}
             >
               <h3 className={styles.fileName}>{file.originalName}</h3>
@@ -1405,7 +1422,7 @@ const FileDashboard = ({
                   />
                 </button>
               </div>
-            </button>
+            </article>
           );
         })}
       </section>
