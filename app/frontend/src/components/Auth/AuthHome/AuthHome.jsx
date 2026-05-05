@@ -54,7 +54,8 @@ const AuthHome = (props) => {
       setSuccessMessage(t("registrationSuccess"));
     } catch (error) {
       console.error("Cognito Signup Error:", error);
-      const exactErrorMessage = error.message || error.response?.data?.message || 'Registration failed';
+      const exactErrorMessage =
+        error.message || error.response?.data?.message || "Registration failed";
       setErrorMessage(exactErrorMessage);
     } finally {
       setIsLoading(false);
@@ -121,15 +122,11 @@ const AuthHome = (props) => {
     }
   };
 
-  const resetMessagesOnLanguageChange = () => {
+  React.useEffect(() => {
     if (language) {
       setErrorMessage("");
       setSuccessMessage("");
     }
-  };
-
-  React.useEffect(() => {
-    resetMessagesOnLanguageChange();
   }, [language]);
 
   // ==========================================================
