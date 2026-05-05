@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
 import { BsTrashFill } from "react-icons/bs";
+import { MdFilterAltOff } from "react-icons/md";
 import { QRCodeSVG } from "qrcode.react";
 import { deleteFile, getDownloadUrl, getUserFiles } from "../../api/fileApi";
 import styles from "./FileDashboard.module.css";
@@ -148,6 +149,15 @@ const FileDashboard = ({
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [extFilter, setExtFilter] = useState("ALL");
   const [sortOrder, setSortOrder] = useState("NEWEST");
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setActiveStateFilter("ALL");
+    setAvStatusFilter("ALL");
+    setCategoryFilter("ALL");
+    setExtFilter("ALL");
+    setSortOrder("NEWEST");
+  };
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -506,23 +516,15 @@ const FileDashboard = ({
       )}
 
       <section className={styles.dashboard}>
-        <div
-          style={{
-            gridColumn: "1 / -1",
-            display: "grid",
-            gap: "0.75rem",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            marginBottom: "0.5rem",
-          }}
-        >
+        <div className={styles.filterSection}>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t("searchPlaceholder")}
             style={{
-              gridColumn: "1 / -1",
               width: "100%",
+              boxSizing: "border-box",
               padding: "0.65rem 0.75rem",
               borderRadius: "0.5rem",
               border: "1px solid #d1d5db",
@@ -530,116 +532,146 @@ const FileDashboard = ({
             }}
           />
 
-          <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-              {t("filterState")}
-            </span>
-            <select
-              value={activeStateFilter}
-              onChange={(e) => setActiveStateFilter(e.target.value)}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "flex-end",
+              gap: "0.75rem",
+              width: "100%",
+            }}
+          >
+            <div
               style={{
-                width: "100%",
-                padding: "0.6rem 0.7rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
+                display: "grid",
+                gap: "0.75rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                flex: 1,
+                minWidth: "320px",
               }}
             >
-              <option value="ALL">{t("allStatuses")}</option>
-              <option value="ACTIVE">{t("active")}</option>
-              <option value="INACTIVE">{t("inactive")}</option>
-            </select>
-          </label>
+              <label style={{ display: "grid", gap: "0.35rem" }}>
+                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+                  {t("filterState")}
+                </span>
+                <select
+                  value={activeStateFilter}
+                  onChange={(e) => setActiveStateFilter(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem 0.7rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  <option value="ALL">{t("allStatuses")}</option>
+                  <option value="ACTIVE">{t("active")}</option>
+                  <option value="INACTIVE">{t("inactive")}</option>
+                </select>
+              </label>
 
-          <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-              {t("filterAvStatus")}
-            </span>
-            <select
-              value={avStatusFilter}
-              onChange={(e) => setAvStatusFilter(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "0.6rem 0.7rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
-              }}
-            >
-              <option value="ALL">{t("allAvStatuses")}</option>
-              {uniqueAvStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {translateStatusValue(status)}
-                </option>
-              ))}
-            </select>
-          </label>
+              <label style={{ display: "grid", gap: "0.35rem" }}>
+                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+                  {t("filterAvStatus")}
+                </span>
+                <select
+                  value={avStatusFilter}
+                  onChange={(e) => setAvStatusFilter(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem 0.7rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  <option value="ALL">{t("allAvStatuses")}</option>
+                  {uniqueAvStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {translateStatusValue(status)}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-              {t("filterCategoryLabel")}
-            </span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                setExtFilter("ALL");
-              }}
-              style={{
-                width: "100%",
-                padding: "0.6rem 0.7rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
-              }}
-            >
-              <option value="ALL">{t("cat_ALL")}</option>
-              {availableCategories.map((category) => (
-                <option key={category} value={category}>
-                  {translateCategoryValue(category)}
-                </option>
-              ))}
-            </select>
-          </label>
+              <label style={{ display: "grid", gap: "0.35rem" }}>
+                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+                  {t("filterCategoryLabel")}
+                </span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setExtFilter("ALL");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem 0.7rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  <option value="ALL">{t("cat_ALL")}</option>
+                  {availableCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {translateCategoryValue(category)}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-              {t("filterExtLabel")}
-            </span>
-            <select
-              value={extFilter}
-              onChange={(e) => setExtFilter(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "0.6rem 0.7rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
-              }}
-            >
-              <option value="ALL">{t("allExtensions")}</option>
-              {availableExtensions.map((extension) => (
-                <option key={extension} value={extension}>
-                  {extension}
-                </option>
-              ))}
-            </select>
-          </label>
+              <label style={{ display: "grid", gap: "0.35rem" }}>
+                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+                  {t("filterExtLabel")}
+                </span>
+                <select
+                  value={extFilter}
+                  onChange={(e) => setExtFilter(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem 0.7rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  <option value="ALL">{t("allExtensions")}</option>
+                  {availableExtensions.map((extension) => (
+                    <option key={extension} value={extension}>
+                      {extension}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-              {t("filterSortLabel")}
-            </span>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "0.6rem 0.7rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
-              }}
+              <label style={{ display: "grid", gap: "0.35rem" }}>
+                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+                  {t("filterSortLabel")}
+                </span>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem 0.7rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  <option value="NEWEST">{t("sortNewest")}</option>
+                  <option value="OLDEST">{t("sortOldest")}</option>
+                </select>
+              </label>
+            </div>
+
+            <button
+              onClick={handleClearFilters}
+              className={styles.clearFiltersBtn}
+              aria-label="Clear all filters"
+              title="Clear all filters"
             >
-              <option value="NEWEST">{t("sortNewest")}</option>
-              <option value="OLDEST">{t("sortOldest")}</option>
-            </select>
-          </label>
+              <MdFilterAltOff />
+              <span>{t("clearFilters") || "Clear filters"}</span>
+            </button>
+          </div>
         </div>
 
         {filteredAndSortedFiles.map((file, index) => {

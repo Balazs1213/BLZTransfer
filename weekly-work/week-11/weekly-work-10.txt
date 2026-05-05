@@ -1,1 +1,3 @@
 50 MB-os venddég fájl méret beállítása, kettős véddelemmel frontend és backend oldalon is.
+Refactoráltam egyes frontend kódokat, mint az App.jsx és a FilePicker.jsx
+Clear filter gomb bevezetése és fortned szépítése, file dashboard-on.
