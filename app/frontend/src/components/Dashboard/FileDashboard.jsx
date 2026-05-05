@@ -2,6 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
 import { BsTrashFill } from "react-icons/bs";
 import { MdFilterAltOff } from "react-icons/md";
+import {
+  FaFilePdf,
+  FaFileImage,
+  FaFileVideo,
+  FaFileAudio,
+  FaFileAlt,
+  FaFileArchive,
+} from "react-icons/fa";
 import PropTypes from "prop-types";
 import { QRCodeSVG } from "qrcode.react";
 import { deleteFile, getDownloadUrl, getUserFiles } from "../../api/fileApi";
@@ -25,6 +33,78 @@ const getFileExtension = (file) => {
   }
 
   return sourceName.slice(dotIndex + 1).toLowerCase();
+};
+
+const getFileIcon = (fileName) => {
+  const extension = getFileExtension({ fileName });
+
+  if (extension === "pdf") return FaFilePdf;
+
+  if (
+    [
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "webp",
+      "bmp",
+      "svg",
+      "heic",
+      "heif",
+    ].includes(extension)
+  ) {
+    return FaFileImage;
+  }
+
+  if (["mp4", "mov", "avi", "mkv", "webm", "m4v"].includes(extension)) {
+    return FaFileVideo;
+  }
+
+  if (["mp3", "wav", "ogg", "flac", "aac", "m4a"].includes(extension)) {
+    return FaFileAudio;
+  }
+
+  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(extension)) {
+    return FaFileArchive;
+  }
+
+  return FaFileAlt;
+};
+
+const getFileIconClassName = (fileName) => {
+  const extension = getFileExtension({ fileName });
+
+  if (extension === "pdf") return styles.fileIconPdf;
+
+  if (
+    [
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "webp",
+      "bmp",
+      "svg",
+      "heic",
+      "heif",
+    ].includes(extension)
+  ) {
+    return styles.fileIconImage;
+  }
+
+  if (["mp4", "mov", "avi", "mkv", "webm", "m4v"].includes(extension)) {
+    return styles.fileIconVideo;
+  }
+
+  if (["mp3", "wav", "ogg", "flac", "aac", "m4a"].includes(extension)) {
+    return styles.fileIconAudio;
+  }
+
+  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(extension)) {
+    return styles.fileIconArchive;
+  }
+
+  return styles.fileIconDefault;
 };
 
 const getUploadTimestamp = (file) => {
@@ -427,6 +507,8 @@ const FileCardGrid = ({
     const derivedState = getDerivedLinkState(file, index);
     const isActive = derivedState.status === "active";
     const isExpired = derivedState.status === "expired";
+    const FileIcon = getFileIcon(file.originalName);
+    const fileIconClassName = getFileIconClassName(file.originalName);
 
     const cardClasses = [styles.card];
     if (isActive) cardClasses.push(styles.cardActive);
@@ -450,7 +532,13 @@ const FileCardGrid = ({
         className={`${cardClasses.join(" ")} ${styles.cardButton}`}
         {...cardProps}
       >
-        <h3 className={styles.fileName}>{file.originalName}</h3>
+        <h3 className={styles.fileName}>
+          <FileIcon
+            className={`${styles.fileIcon} ${fileIconClassName}`}
+            aria-hidden="true"
+          />
+          {file.originalName}
+        </h3>
 
         <div className={styles.statusBadge}>
           {derivedState.status === "inactive" && (
@@ -1300,6 +1388,8 @@ const FileDashboard = ({
           const derivedState = getDerivedLinkState(file, index);
           const isActive = derivedState.status === "active";
           const isExpired = derivedState.status === "expired";
+          const FileIcon = getFileIcon(file.originalName);
+          const fileIconClassName = getFileIconClassName(file.originalName);
 
           const cardClasses = [styles.card];
           if (isActive) cardClasses.push(styles.cardActive);
@@ -1320,7 +1410,13 @@ const FileDashboard = ({
               }}
               aria-label={`Open details for ${file.originalName}`}
             >
-              <h3 className={styles.fileName}>{file.originalName}</h3>
+              <h3 className={styles.fileName}>
+                <FileIcon
+                  className={`${styles.fileIcon} ${fileIconClassName}`}
+                  aria-hidden="true"
+                />
+                {file.originalName}
+              </h3>
 
               <div className={styles.statusBadge}>
                 {derivedState.status === "inactive" && (

@@ -3,3 +3,4 @@ Refactoráltam egyes frontend kódokat, mint az App.jsx és a FilePicker.jsx
 Clear filter gomb bevezetése és fortned szépítése, file dashboard-on.
 Sonalint álltal jelzett hibák miatti refactorálása a FileDashboar.jsx és a hozzá tartozó css fájlba, 40 hiba javítása, pl billenytűvel is elérehtőek már a kértyák is.
 Fájl kártyákhoz hozzá adtam egy fájl méret leírást is.
+File iconokat bevezettem, a ki skártyákon a file típusának (kiterjesztésének megfelelően).

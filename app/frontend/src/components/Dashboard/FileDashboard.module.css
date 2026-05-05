@@ -54,6 +54,38 @@
   word-break: break-word;
 }
 
+.fileIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.45rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.fileIconDefault {
+  color: #64748b;
+}
+
+.fileIconPdf {
+  color: #dc2626;
+}
+
+.fileIconImage {
+  color: #2563eb;
+}
+
+.fileIconVideo {
+  color: #7c3aed;
+}
+
+.fileIconAudio {
+  color: #0f766e;
+}
+
+.fileIconArchive {
+  color: #d97706;
+}
+
 .metaRow {
   margin: 0;
   color: #334155;
