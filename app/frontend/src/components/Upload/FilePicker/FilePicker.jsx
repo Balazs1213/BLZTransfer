@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import PropTypes from "prop-types";
 import Dropzone from "../../UI/Dropzone/Dropzone";
 import ProgressBar from "../../UI/Feedback/ProgressBar/ProgressBar";
 import classes from "./FilePicker.module.css";
@@ -48,6 +49,15 @@ const FilePicker = ({
       )}
     </div>
   );
+};
+
+FilePicker.propTypes = {
+  onFileSelect: PropTypes.func.isRequired,
+  isUploading: PropTypes.bool.isRequired,
+  progress: PropTypes.number.isRequired,
+  statusText: PropTypes.string.isRequired,
+  currentStatus: PropTypes.string.isRequired,
+  t: PropTypes.func.isRequired,
 };
 
 export default FilePicker;

@@ -172,18 +172,16 @@ function App() {
 
   const isGuest = userType === "guest";
 
+  const headerTitle = isGuest ? t("guestTransfer") : t("secureDashboard");
+
+  const navbarTitle = isAuthorized ? headerTitle : "BLZ Transfer";
+
   return (
     <div className="app-container">
       {/* NAVBAR */}
       <nav className="navbar">
         <div className="navbar-brand">
-          <h1 className="navbar-title">
-            {!isAuthorized
-              ? "BLZ Transfer"
-              : isGuest
-                ? t("guestTransfer")
-                : t("secureDashboard")}
-          </h1>
+          <h1 className="navbar-title">{navbarTitle}</h1>
         </div>
 
         <div className="navbar-content">
@@ -231,16 +229,7 @@ function App() {
       </nav>
 
       {/* MAIN CONTENT */}
-      {!isAuthorized ? (
-        <main className="auth-main">
-          <AuthHome
-            onLogin={loginHandler}
-            onContinueAsGuest={guestHandler}
-            language={language}
-            t={t}
-          />
-        </main>
-      ) : (
+      {isAuthorized ? (
         <main className="dashboard-main">
           {/* UPLOAD TAB */}
           {(isGuest || activeTab === "upload") && (
@@ -302,6 +291,15 @@ function App() {
               </div>
             </section>
           )}
+        </main>
+      ) : (
+        <main className="auth-main">
+          <AuthHome
+            onLogin={loginHandler}
+            onContinueAsGuest={guestHandler}
+            language={language}
+            t={t}
+          />
         </main>
       )}
 
