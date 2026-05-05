@@ -30,6 +30,7 @@ function App() {
   const [currentStatus, setCurrentStatus] = useState("Idle");
   const [guestFileCount, setGuestFileCount] = useState(0);
   const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
+  const [uploadError, setUploadError] = useState(null);
 
   useEffect(() => {
     localStorage.setItem("appLang", language);
@@ -74,7 +75,7 @@ function App() {
     const MAX_GUEST_SIZE = 50 * 1024 * 1024;
 
     if (userType === "guest" && file.size > MAX_GUEST_SIZE) {
-      alert(t("error_guest_file_too_large"));
+      setUploadError(t("error_guest_file_too_large"));
       return;
     }
 
@@ -82,6 +83,7 @@ function App() {
     setProgress(0);
     setStatusText("");
     setCurrentStatus("Idle");
+    setUploadError(null);
   };
 
   const uploadHandler = async (file) => {
@@ -239,6 +241,40 @@ function App() {
               </div>
 
               <div className="section-content">
+                {uploadError && (
+                  <div
+                    style={{
+                      backgroundColor: "#fee2e2",
+                      color: "#dc2626",
+                      border: "1px solid #fca5a5",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
+                      marginBottom: "16px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <span>{uploadError}</span>
+                    <button
+                      onClick={() => setUploadError(null)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#dc2626",
+                        cursor: "pointer",
+                        fontSize: "20px",
+                        padding: "0",
+                        lineHeight: "1",
+                      }}
+                      aria-label="Dismiss error"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
                 {(!isGuest || guestFileCount < 1) && (
                   <FilePicker
                     onFileSelect={fileSelectHandler}
