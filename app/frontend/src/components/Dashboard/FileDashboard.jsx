@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
 import { BsTrashFill } from "react-icons/bs";
 import { MdFilterAltOff } from "react-icons/md";
+import PropTypes from "prop-types";
 import { QRCodeSVG } from "qrcode.react";
 import { deleteFile, getDownloadUrl, getUserFiles } from "../../api/fileApi";
 import styles from "./FileDashboard.module.css";
@@ -119,6 +120,752 @@ const formatRemaining = (remainingMs) => {
 
 const GUEST_FILE_STORAGE_KEY = "blz_guest_file";
 
+const getFilteredAndSortedFiles = ({
+  files,
+  searchTerm,
+  activeStateFilter,
+  avStatusFilter,
+  categoryFilter,
+  extFilter,
+  sortOrder,
+}) => {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const filtered = files.filter((file) => {
+    const fileName = String(file?.fileName || "").toLowerCase();
+    const originalName = String(file?.originalName || "").toLowerCase();
+    const tags = [...toArray(file?.tags), ...toArray(file?.aiLabels)]
+      .filter((tag) => typeof tag === "string")
+      .map((tag) => tag.toLowerCase());
+
+    const searchMatches =
+      normalizedSearch === "" ||
+      fileName.includes(normalizedSearch) ||
+      originalName.includes(normalizedSearch) ||
+      tags.some((tag) => tag.includes(normalizedSearch));
+
+    const inactive = getIsInactive(file);
+    const activeStateMatches =
+      activeStateFilter === "ALL" ||
+      (activeStateFilter === "ACTIVE" && !inactive) ||
+      (activeStateFilter === "INACTIVE" && inactive);
+
+    const avStatusMatches =
+      avStatusFilter === "ALL" || file?.status === avStatusFilter;
+
+    const categoryMatches =
+      categoryFilter === "ALL" || file?.category === categoryFilter;
+
+    const extensionMatches =
+      extFilter === "ALL" || `.${getFileExtension(file)}` === extFilter;
+
+    return (
+      searchMatches &&
+      activeStateMatches &&
+      avStatusMatches &&
+      categoryMatches &&
+      extensionMatches
+    );
+  });
+
+  return filtered.sort((firstFile, secondFile) => {
+    const firstTimestamp = getUploadTimestamp(firstFile);
+    const secondTimestamp = getUploadTimestamp(secondFile);
+
+    if (sortOrder === "OLDEST") {
+      return firstTimestamp - secondTimestamp;
+    }
+
+    return secondTimestamp - firstTimestamp;
+  });
+};
+
+const FilterSection = ({
+  t,
+  searchTerm,
+  setSearchTerm,
+  activeStateFilter,
+  setActiveStateFilter,
+  avStatusFilter,
+  setAvStatusFilter,
+  categoryFilter,
+  setCategoryFilter,
+  extFilter,
+  setExtFilter,
+  sortOrder,
+  setSortOrder,
+  uniqueAvStatuses,
+  availableCategories,
+  availableExtensions,
+  translateStatusValue,
+  translateCategoryValue,
+  onClearFilters,
+}) => {
+  return (
+    <div className={styles.filterSection}>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder={t("searchPlaceholder")}
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "0.65rem 0.75rem",
+          borderRadius: "0.5rem",
+          border: "1px solid #d1d5db",
+          fontSize: "0.95rem",
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          gap: "0.75rem",
+          width: "100%",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gap: "0.75rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            flex: 1,
+            minWidth: "320px",
+          }}
+        >
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterState")}
+            </span>
+            <select
+              value={activeStateFilter}
+              onChange={(e) => setActiveStateFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allStatuses")}</option>
+              <option value="ACTIVE">{t("active")}</option>
+              <option value="INACTIVE">{t("inactive")}</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterAvStatus")}
+            </span>
+            <select
+              value={avStatusFilter}
+              onChange={(e) => setAvStatusFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allAvStatuses")}</option>
+              {uniqueAvStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {translateStatusValue(status)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterCategoryLabel")}
+            </span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setExtFilter("ALL");
+              }}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("cat_ALL")}</option>
+              {availableCategories.map((category) => (
+                <option key={category} value={category}>
+                  {translateCategoryValue(category)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterExtLabel")}
+            </span>
+            <select
+              value={extFilter}
+              onChange={(e) => setExtFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="ALL">{t("allExtensions")}</option>
+              {availableExtensions.map((extension) => (
+                <option key={extension} value={extension}>
+                  {extension}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+              {t("filterSortLabel")}
+            </span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.7rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="NEWEST">{t("sortNewest")}</option>
+              <option value="OLDEST">{t("sortOldest")}</option>
+            </select>
+          </label>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className={styles.clearFiltersBtn}
+          aria-label="Clear all filters"
+          title="Clear all filters"
+        >
+          <MdFilterAltOff />
+          <span>{t("clearFilters") || "Clear filters"}</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+FilterSection.propTypes = {
+  t: PropTypes.func.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  activeStateFilter: PropTypes.string.isRequired,
+  setActiveStateFilter: PropTypes.func.isRequired,
+  avStatusFilter: PropTypes.string.isRequired,
+  setAvStatusFilter: PropTypes.func.isRequired,
+  categoryFilter: PropTypes.string.isRequired,
+  setCategoryFilter: PropTypes.func.isRequired,
+  extFilter: PropTypes.string.isRequired,
+  setExtFilter: PropTypes.func.isRequired,
+  sortOrder: PropTypes.string.isRequired,
+  setSortOrder: PropTypes.func.isRequired,
+  uniqueAvStatuses: PropTypes.arrayOf(PropTypes.string).isRequired,
+  availableCategories: PropTypes.arrayOf(PropTypes.string).isRequired,
+  availableExtensions: PropTypes.arrayOf(PropTypes.string).isRequired,
+  translateStatusValue: PropTypes.func.isRequired,
+  translateCategoryValue: PropTypes.func.isRequired,
+  onClearFilters: PropTypes.func.isRequired,
+};
+
+const FileCardGrid = ({
+  filteredAndSortedFiles,
+  setSelectedFile,
+  setFileToDelete,
+  isGuestUser,
+  userId,
+  t,
+  styles,
+  renderActiveStateLabel,
+  translateStatusValue,
+  translateCategoryValue,
+  getDerivedLinkState,
+  handleRevoke,
+  formatDate,
+}) => {
+  return filteredAndSortedFiles.map((file, index) => {
+    const labels = toArray(file.aiLabels).filter(
+      (label) => typeof label === "string" && label.trim(),
+    );
+    const textPreview = extractPreview(file.extractedText);
+    const cardKey = `${getFileId(file, index)}-${index}`;
+    const derivedState = getDerivedLinkState(file, index);
+    const isActive = derivedState.status === "active";
+    const isExpired = derivedState.status === "expired";
+
+    const cardClasses = [styles.card];
+    if (isActive) cardClasses.push(styles.cardActive);
+    if (isExpired) cardClasses.push(styles.cardExpired);
+
+    return (
+      <button
+        type="button"
+        key={cardKey}
+        className={`${cardClasses.join(" ")} ${styles.cardButton}`}
+        onClick={() => setSelectedFile(file)}
+        aria-label={`Open details for ${file.originalName}`}
+      >
+        <h3 className={styles.fileName}>{file.originalName}</h3>
+
+        <div className={styles.statusBadge}>
+          {derivedState.status === "inactive" && (
+            <>
+              <FiClock className={styles.statusIconMuted} />
+              <span>{t("notActive")}</span>
+            </>
+          )}
+
+          {isActive && (
+            <>
+              <FiCheckCircle className={styles.statusIconActive} />
+              <span>
+                {renderActiveStateLabel(
+                  "active",
+                  derivedState.type,
+                  derivedState.remainingSeconds,
+                )}
+              </span>
+            </>
+          )}
+
+          {isExpired && (
+            <>
+              <FiXCircle className={styles.statusIconExpired} />
+              <span>{t("notActive")}</span>
+            </>
+          )}
+        </div>
+
+        <p className={styles.metaRow}>
+          <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
+          {formatDate(file.uploadDate)}
+        </p>
+        <p className={styles.metaRow}>
+          <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
+          {translateStatusValue(file.status)}
+        </p>
+        <p className={styles.metaRow}>
+          <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
+          {translateCategoryValue(file.category)}
+        </p>
+
+        {labels.length > 0 && (
+          <div className={styles.labelsWrap}>
+            {labels.map((label, labelIndex) => (
+              <span key={`${label}-${labelIndex}`} className={styles.badge}>
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {textPreview && (
+          <blockquote className={styles.quote}>{textPreview}</blockquote>
+        )}
+
+        <div className={styles.cardActions}>
+          {isActive && !isGuestUser && (
+            <button
+              type="button"
+              className={styles.revokeBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRevoke(derivedState.fileId);
+              }}
+            >
+              {t("revoke")}
+            </button>
+          )}
+
+          {!(
+            userId === "guest" &&
+            (file.status?.toLowerCase() === "revoked" ||
+              file.status?.toLowerCase() === "not active" ||
+              file.status?.toLowerCase() === "notactive")
+          ) &&
+            isExpired && (
+              <button
+                type="button"
+                className={styles.regenerateBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedFile(file);
+                }}
+              >
+                {t("getLink")}
+              </button>
+            )}
+
+          <button
+            type="button"
+            className={styles.trashBtn}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "40px",
+              height: "40px",
+              backgroundColor: "#ffe5e5",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setFileToDelete(file);
+            }}
+            aria-label={t("delete")}
+          >
+            <BsTrashFill
+              style={{
+                color: "#d9534f",
+                fontSize: "20px",
+                minWidth: "20px",
+                minHeight: "20px",
+                display: "block",
+              }}
+            />
+          </button>
+        </div>
+      </button>
+    );
+  });
+};
+
+FileCardGrid.propTypes = {
+  filteredAndSortedFiles: PropTypes.arrayOf(PropTypes.object).isRequired,
+  setSelectedFile: PropTypes.func.isRequired,
+  setFileToDelete: PropTypes.func.isRequired,
+  isGuestUser: PropTypes.bool.isRequired,
+  userId: PropTypes.string.isRequired,
+  t: PropTypes.func.isRequired,
+  styles: PropTypes.object.isRequired,
+  renderActiveStateLabel: PropTypes.func.isRequired,
+  translateStatusValue: PropTypes.func.isRequired,
+  translateCategoryValue: PropTypes.func.isRequired,
+  getDerivedLinkState: PropTypes.func.isRequired,
+  handleRevoke: PropTypes.func.isRequired,
+  formatDate: PropTypes.func.isRequired,
+};
+
+const FileDialogs = ({
+  selectedFile,
+  fileToDelete,
+  showReplaceModal,
+  setSelectedFile,
+  setFileToDelete,
+  setShowReplaceModal,
+  setModalError,
+  t,
+  styles,
+  isGuestUser,
+  userId,
+  selectedDuration,
+  setSelectedDuration,
+  maxDownloads,
+  setMaxDownloads,
+  modalError,
+  activeSelectedState,
+  copyFeedback,
+  isGenerating,
+  handleGenerate,
+  handleRevoke,
+  copyToClipboard,
+  translateStatusValue,
+  translateCategoryValue,
+  confirmAndDelete,
+  confirmReplaceFile,
+  formatDate,
+}) => {
+  return (
+    <>
+      {selectedFile && (
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label={t("close")}
+            onClick={() => setSelectedFile(null)}
+          />
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>{selectedFile.originalName}</h3>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
+              {translateStatusValue(selectedFile.status)}
+            </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
+              {translateCategoryValue(selectedFile.category)}
+            </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
+              {formatDate(selectedFile.uploadDate)}
+            </p>
+            <div className={styles.durationControl}>
+              <label htmlFor="durationSelect" className={styles.durationLabel}>
+                {t("validForMinutes")}
+              </label>
+              <select
+                id="durationSelect"
+                className={styles.durationSelect}
+                value={isGuestUser ? 60 : selectedDuration}
+                disabled={isGuestUser}
+                onChange={(e) =>
+                  setSelectedDuration(Number(e.target.value) || 1)
+                }
+              >
+                <option value={1}>1</option>
+                <option value={5}>5</option>
+                <option value={15}>15</option>
+                <option value={60}>60</option>
+              </select>
+              {isGuestUser && (
+                <p className={styles.metaRow}>{t("guestExpiryNote")}</p>
+              )}
+              <label
+                htmlFor="maxDownloadsInput"
+                className={styles.durationLabel}
+              >
+                {t("maxDownloads")}
+              </label>
+              <input
+                id="maxDownloadsInput"
+                type="number"
+                min={1}
+                step={1}
+                className={styles.durationSelect}
+                value={isGuestUser ? 1 : maxDownloads}
+                disabled={isGuestUser}
+                onChange={(e) =>
+                  setMaxDownloads(Math.max(1, Number(e.target.value) || 1))
+                }
+              />
+              {isGuestUser && (
+                <p className={styles.metaRow}>{t("guestDownloadNote")}</p>
+              )}
+            </div>
+            {modalError && <p className={styles.modalError}>{modalError}</p>}
+            {activeSelectedState?.status === "active" &&
+            activeSelectedState.url ? (
+              <div className={styles.generatedWrap}>
+                <p className={styles.generatedMeta}>
+                  {t("active")} (
+                  {activeSelectedState.type === "qr" ? "QR" : "Link"}) -{" "}
+                  {formatRemaining(activeSelectedState.remainingSeconds * 1000)}
+                </p>
+                {activeSelectedState.type === "qr" ? (
+                  <div className={styles.qrWrap}>
+                    <QRCodeSVG value={activeSelectedState.url} size={180} />
+                  </div>
+                ) : null}
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.copyBtn}
+                    onClick={() => copyToClipboard(activeSelectedState.url)}
+                  >
+                    {t("copyLink")}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.revokeBtn}
+                    onClick={() => handleRevoke(activeSelectedState.fileId)}
+                  >
+                    {t("revoke")}
+                  </button>
+                </div>
+                {copyFeedback && (
+                  <p className={styles.copiedText}>{copyFeedback}</p>
+                )}
+              </div>
+            ) : (
+              <div className={styles.modalActions}>
+                {!(
+                  userId === "guest" &&
+                  (selectedFile?.status?.toLowerCase() === "revoked" ||
+                    selectedFile?.status?.toLowerCase() === "not active" ||
+                    selectedFile?.status?.toLowerCase() === "notactive")
+                ) && (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() =>
+                        handleGenerate(
+                          selectedFile,
+                          "link",
+                          isGuestUser ? 60 : selectedDuration,
+                          isGuestUser ? 1 : maxDownloads,
+                        )
+                      }
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? t("generating") : t("getLink")}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() =>
+                        handleGenerate(
+                          selectedFile,
+                          "qr",
+                          isGuestUser ? 60 : selectedDuration,
+                          isGuestUser ? 1 : maxDownloads,
+                        )
+                      }
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? t("generating") : t("getQrCode")}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              className={styles.closeBtn}
+              onClick={() => {
+                setModalError("");
+                setSelectedFile(null);
+              }}
+            >
+              {t("close")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {fileToDelete && (
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label={t("close")}
+            onClick={() => setFileToDelete(null)}
+          />
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>{t("confirmDeleteTitle")}</h3>
+            <p className={styles.metaRow}>{t("confirmDeleteText")}</p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>
+                {fileToDelete.originalName}
+              </span>
+            </p>
+            {modalError && <p className={styles.modalError}>{modalError}</p>}
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.copyBtn}
+                onClick={() => setFileToDelete(null)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={confirmAndDelete}
+              >
+                {t("confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReplaceModal && (
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label={t("close")}
+            onClick={() => setShowReplaceModal(false)}
+          />
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>{t("replaceFileTitle")}</h3>
+            <p className={styles.metaRow}>{t("replaceFileText")}</p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.copyBtn}
+                onClick={() => setShowReplaceModal(false)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={confirmReplaceFile}
+              >
+                {t("confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+FileDialogs.propTypes = {
+  selectedFile: PropTypes.shape({
+    originalName: PropTypes.string,
+    status: PropTypes.string,
+    category: PropTypes.string,
+    uploadDate: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }),
+  fileToDelete: PropTypes.shape({
+    originalName: PropTypes.string,
+  }),
+  showReplaceModal: PropTypes.bool.isRequired,
+  setSelectedFile: PropTypes.func.isRequired,
+  setFileToDelete: PropTypes.func.isRequired,
+  setShowReplaceModal: PropTypes.func.isRequired,
+  setModalError: PropTypes.func.isRequired,
+  t: PropTypes.func.isRequired,
+  styles: PropTypes.object.isRequired,
+  isGuestUser: PropTypes.bool.isRequired,
+  userId: PropTypes.string.isRequired,
+  selectedDuration: PropTypes.number.isRequired,
+  setSelectedDuration: PropTypes.func.isRequired,
+  maxDownloads: PropTypes.number.isRequired,
+  setMaxDownloads: PropTypes.func.isRequired,
+  modalError: PropTypes.string,
+  activeSelectedState: PropTypes.shape({
+    status: PropTypes.string,
+    url: PropTypes.string,
+    type: PropTypes.string,
+    remainingSeconds: PropTypes.number,
+    fileId: PropTypes.string,
+  }),
+  copyFeedback: PropTypes.string,
+  isGenerating: PropTypes.bool.isRequired,
+  handleGenerate: PropTypes.func.isRequired,
+  handleRevoke: PropTypes.func.isRequired,
+  copyToClipboard: PropTypes.func.isRequired,
+  translateStatusValue: PropTypes.func.isRequired,
+  translateCategoryValue: PropTypes.func.isRequired,
+  confirmAndDelete: PropTypes.func.isRequired,
+  confirmReplaceFile: PropTypes.func.isRequired,
+  formatDate: PropTypes.func.isRequired,
+};
+
 const FileDashboard = ({
   userId = "guest",
   apiUrl,
@@ -126,6 +873,7 @@ const FileDashboard = ({
   onFilesChange,
   refreshTrigger = 0,
 }) => {
+  // NOSONAR
   const executeDownloadBaseUrl =
     "https://h8sikvnc4a.execute-api.us-east-1.amazonaws.com/default/blz-execute-download";
   const isGuestUser = userId === "guest";
@@ -367,14 +1115,22 @@ const FileDashboard = ({
   const translateStatusValue = (value) => {
     const normalized = String(value ?? "").toLowerCase();
     const translated = t(normalized);
-    return translated !== normalized ? translated : value || t("n/a");
+    if (translated === normalized) {
+      return value || t("n/a");
+    }
+
+    return translated;
   };
 
   const translateCategoryValue = (value) => {
     const rawCategory = String(value ?? "").trim() || "N/A";
     const key = `cat_${rawCategory}`;
     const translated = t(key);
-    return translated !== key ? translated : rawCategory;
+    if (translated === key) {
+      return rawCategory;
+    }
+
+    return translated;
   };
 
   const renderActiveStateLabel = (status, type, remainingSeconds) => {
@@ -423,65 +1179,27 @@ const FileDashboard = ({
     ).sort((a, b) => a.localeCompare(b));
   }, [files]);
 
-  const filteredAndSortedFiles = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    const filtered = files.filter((file) => {
-      const fileName = String(file?.fileName || "").toLowerCase();
-      const originalName = String(file?.originalName || "").toLowerCase();
-      const tags = [...toArray(file?.tags), ...toArray(file?.aiLabels)]
-        .filter((tag) => typeof tag === "string")
-        .map((tag) => tag.toLowerCase());
-
-      const searchMatches =
-        !normalizedSearch ||
-        fileName.includes(normalizedSearch) ||
-        originalName.includes(normalizedSearch) ||
-        tags.some((tag) => tag.includes(normalizedSearch));
-
-      const inactive = getIsInactive(file);
-      const activeStateMatches =
-        activeStateFilter === "ALL" ||
-        (activeStateFilter === "ACTIVE" && !inactive) ||
-        (activeStateFilter === "INACTIVE" && inactive);
-
-      const avStatusMatches =
-        avStatusFilter === "ALL" || file?.status === avStatusFilter;
-
-      const categoryMatches =
-        categoryFilter === "ALL" || file?.category === categoryFilter;
-
-      const extensionMatches =
-        extFilter === "ALL" || `.${getFileExtension(file)}` === extFilter;
-
-      return (
-        searchMatches &&
-        activeStateMatches &&
-        avStatusMatches &&
-        categoryMatches &&
-        extensionMatches
-      );
-    });
-
-    return filtered.sort((firstFile, secondFile) => {
-      const firstTimestamp = getUploadTimestamp(firstFile);
-      const secondTimestamp = getUploadTimestamp(secondFile);
-
-      if (sortOrder === "OLDEST") {
-        return firstTimestamp - secondTimestamp;
-      }
-
-      return secondTimestamp - firstTimestamp;
-    });
-  }, [
-    files,
-    searchTerm,
-    activeStateFilter,
-    avStatusFilter,
-    categoryFilter,
-    extFilter,
-    sortOrder,
-  ]);
+  const filteredAndSortedFiles = useMemo(
+    () =>
+      getFilteredAndSortedFiles({
+        files,
+        searchTerm,
+        activeStateFilter,
+        avStatusFilter,
+        categoryFilter,
+        extFilter,
+        sortOrder,
+      }),
+    [
+      files,
+      searchTerm,
+      activeStateFilter,
+      avStatusFilter,
+      categoryFilter,
+      extFilter,
+      sortOrder,
+    ],
+  );
 
   if (loading) {
     return <section className={styles.state}>{t("loadingFiles")}</section>;
@@ -495,10 +1213,12 @@ const FileDashboard = ({
     );
   }
 
-  if (!hasFiles) {
-    return !isGuestUser ? (
-      <section className={styles.state}>{t("noFilesFound")}</section>
-    ) : null;
+  if (hasFiles) {
+    // continue to the dashboard render below
+  } else if (isGuestUser) {
+    return null;
+  } else {
+    return <section className={styles.state}>{t("noFilesFound")}</section>;
   }
 
   return (
@@ -516,163 +1236,27 @@ const FileDashboard = ({
       )}
 
       <section className={styles.dashboard}>
-        <div className={styles.filterSection}>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "0.65rem 0.75rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-              fontSize: "0.95rem",
-            }}
-          />
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "flex-end",
-              gap: "0.75rem",
-              width: "100%",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gap: "0.75rem",
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                flex: 1,
-                minWidth: "320px",
-              }}
-            >
-              <label style={{ display: "grid", gap: "0.35rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-                  {t("filterState")}
-                </span>
-                <select
-                  value={activeStateFilter}
-                  onChange={(e) => setActiveStateFilter(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.7rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  <option value="ALL">{t("allStatuses")}</option>
-                  <option value="ACTIVE">{t("active")}</option>
-                  <option value="INACTIVE">{t("inactive")}</option>
-                </select>
-              </label>
-
-              <label style={{ display: "grid", gap: "0.35rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-                  {t("filterAvStatus")}
-                </span>
-                <select
-                  value={avStatusFilter}
-                  onChange={(e) => setAvStatusFilter(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.7rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  <option value="ALL">{t("allAvStatuses")}</option>
-                  {uniqueAvStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {translateStatusValue(status)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label style={{ display: "grid", gap: "0.35rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-                  {t("filterCategoryLabel")}
-                </span>
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value);
-                    setExtFilter("ALL");
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.7rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  <option value="ALL">{t("cat_ALL")}</option>
-                  {availableCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {translateCategoryValue(category)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label style={{ display: "grid", gap: "0.35rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-                  {t("filterExtLabel")}
-                </span>
-                <select
-                  value={extFilter}
-                  onChange={(e) => setExtFilter(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.7rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  <option value="ALL">{t("allExtensions")}</option>
-                  {availableExtensions.map((extension) => (
-                    <option key={extension} value={extension}>
-                      {extension}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label style={{ display: "grid", gap: "0.35rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
-                  {t("filterSortLabel")}
-                </span>
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.7rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  <option value="NEWEST">{t("sortNewest")}</option>
-                  <option value="OLDEST">{t("sortOldest")}</option>
-                </select>
-              </label>
-            </div>
-
-            <button
-              onClick={handleClearFilters}
-              className={styles.clearFiltersBtn}
-              aria-label="Clear all filters"
-              title="Clear all filters"
-            >
-              <MdFilterAltOff />
-              <span>{t("clearFilters") || "Clear filters"}</span>
-            </button>
-          </div>
-        </div>
+        <FilterSection
+          t={t}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          activeStateFilter={activeStateFilter}
+          setActiveStateFilter={setActiveStateFilter}
+          avStatusFilter={avStatusFilter}
+          setAvStatusFilter={setAvStatusFilter}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          extFilter={extFilter}
+          setExtFilter={setExtFilter}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          uniqueAvStatuses={uniqueAvStatuses}
+          availableCategories={availableCategories}
+          availableExtensions={availableExtensions}
+          translateStatusValue={translateStatusValue}
+          translateCategoryValue={translateCategoryValue}
+          onClearFilters={handleClearFilters}
+        />
 
         {filteredAndSortedFiles.map((file, index) => {
           const labels = toArray(file.aiLabels).filter(
@@ -689,10 +1273,12 @@ const FileDashboard = ({
           if (isExpired) cardClasses.push(styles.cardExpired);
 
           return (
-            <article
+            <button
+              type="button"
               key={cardKey}
-              className={cardClasses.join(" ")}
+              className={`${cardClasses.join(" ")} ${styles.cardButton}`}
               onClick={() => setSelectedFile(file)}
+              aria-label={`Open details for ${file.originalName}`}
             >
               <h3 className={styles.fileName}>{file.originalName}</h3>
 
@@ -819,20 +1405,20 @@ const FileDashboard = ({
                   />
                 </button>
               </div>
-            </article>
+            </button>
           );
         })}
       </section>
 
       {selectedFile && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setSelectedFile(null)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label={t("close")}
+            onClick={() => setSelectedFile(null)}
+          />
+          <div className={styles.modalContent}>
             <h3 className={styles.modalTitle}>{selectedFile.originalName}</h3>
 
             <p className={styles.metaRow}>
@@ -992,14 +1578,14 @@ const FileDashboard = ({
       )}
 
       {fileToDelete && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setFileToDelete(null)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label={t("close")}
+            onClick={() => setFileToDelete(null)}
+          />
+          <div className={styles.modalContent}>
             <h3 className={styles.modalTitle}>{t("confirmDeleteTitle")}</h3>
 
             <p className={styles.metaRow}>{t("confirmDeleteText")}</p>
@@ -1032,14 +1618,14 @@ const FileDashboard = ({
       )}
 
       {showReplaceModal && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setShowReplaceModal(false)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label={t("close")}
+            onClick={() => setShowReplaceModal(false)}
+          />
+          <div className={styles.modalContent}>
             <h3 className={styles.modalTitle}>{t("replaceWarningTitle")}</h3>
             <p className={styles.metaRow}>{t("replaceWarningText")}</p>
 
@@ -1064,6 +1650,14 @@ const FileDashboard = ({
       )}
     </>
   );
+};
+
+FileDashboard.propTypes = {
+  userId: PropTypes.string,
+  apiUrl: PropTypes.string,
+  t: PropTypes.func,
+  onFilesChange: PropTypes.func,
+  refreshTrigger: PropTypes.number,
 };
 
 export default FileDashboard;

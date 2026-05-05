@@ -428,9 +428,9 @@
 }
 
 .clearFiltersBtn:hover {
-  background: #ef4444;
+  background: #b91c1c;
   color: #ffffff;
-  border-color: #dc2626;
+  border-color: #991b1b;
 }
 
 .clearFiltersBtn:active {
