@@ -96,6 +96,24 @@ const formatDate = (value) => {
   return date.toLocaleString();
 };
 
+const formatFileSize = (bytes) => {
+  const numericBytes = Number(bytes);
+  if (!Number.isFinite(numericBytes) || numericBytes < 0) {
+    return "0.0 KB";
+  }
+
+  const units = ["KB", "MB", "GB"];
+  let value = numericBytes / 1024;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${value.toFixed(1)} ${units[unitIndex]}`;
+};
+
 const extractPreview = (text) => {
   if (!text || typeof text !== "string") return "";
 
@@ -468,6 +486,10 @@ const FileCardGrid = ({
           {formatDate(file.uploadDate)}
         </p>
         <p className={styles.metaRow}>
+          <span className={styles.metaLabel}>{t("sizeLabel")}:</span>{" "}
+          {formatFileSize(file.fileSize)}
+        </p>
+        <p className={styles.metaRow}>
           <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
           {translateStatusValue(file.status)}
         </p>
@@ -573,6 +595,7 @@ FileCardGrid.propTypes = {
   getDerivedLinkState: PropTypes.func.isRequired,
   handleRevoke: PropTypes.func.isRequired,
   formatDate: PropTypes.func.isRequired,
+  sizeLabel: PropTypes.string,
 };
 
 const FileDialogs = ({
@@ -1331,6 +1354,10 @@ const FileDashboard = ({
               <p className={styles.metaRow}>
                 <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
                 {formatDate(file.uploadDate)}
+              </p>
+              <p className={styles.metaRow}>
+                <span className={styles.metaLabel}>{t("sizeLabel")}:</span>{" "}
+                {formatFileSize(file.fileSize)}
               </p>
               <p className={styles.metaRow}>
                 <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
