@@ -1,6 +1,6 @@
 name: BLZ Project CI Pipeline
 
-# Ez a blokk mondja meg, mikor induljon el a pipeline (minden push-ra a master/main ágon)
+# Ez a blokk mondja meg, mikor induljon el a pipeline
 on:
   push:
     branches: ["master", "main"]
@@ -30,8 +30,6 @@ jobs:
         working-directory: ./app/backend
         run: dotnet build --no-restore --configuration Release
 
-    # Ide fogjuk beszúrni a Unit Teszteket a következő lépésben!
-
   # 2. FELADAT: A Frontend (React) ellenőrzése és fordítása
   build-frontend:
     name: Build React Frontend
@@ -44,15 +42,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # LTS verzió
-
-      - name: Code Quality Check (Lint)
-        working-directory: ./app/frontend
-        run: npm run lint
+          node-version: "20"
+          cache: "npm" # <--- Szupergyorsítás: megjegyzi a csomagokat
+          cache-dependency-path: "./app/frontend/package-lock.json"
 
       - name: Install dependencies
         working-directory: ./app/frontend
-        run: npm install
+        run: npm ci # <--- npm install helyett: tisztább és stabilabb CI-n
+
+      - name: Code Quality Check (Lint)
+        working-directory: ./app/frontend
+        run: npm run lint # <--- Most már le tud futni, mert vannak függőségek
 
       - name: Build frontend
         working-directory: ./app/frontend
