@@ -60,6 +60,7 @@ jobs:
             get_user_files: 'app/backend/src/Blz.GetUserFiles/**'
             sfn_trigger: 'app/backend/src/Blz.SfnTrigger/**'
             textract: 'app/backend/src/Blz.TextractAnalyzer/**'
+            clamav_scanner: 'app/backend/src/Blz.ClamavScanner/**'
       # --------------------------------------------------
       - name: Deploy CheckFileStatus
         working-directory: ./app/backend/src/Blz.CheckFileStatus
@@ -105,6 +106,11 @@ jobs:
         working-directory: ./app/backend/src/Blz.TextractAnalyzer
         if: github.event_name == 'push' && steps.filter.outputs.textract == 'true'
         run: dotnet lambda deploy-function blz-textract-analyzer
+
+      - name: Deploy ClamavScanner
+        working-directory: ./app/backend/src/Blz.ClamavScanner
+        if: github.event_name == 'push' && steps.filter.outputs.clamav_scanner == 'true'
+        run: dotnet lambda deploy-function blz-clamav-scanner
 
   build-frontend:
     name: Build React Frontend

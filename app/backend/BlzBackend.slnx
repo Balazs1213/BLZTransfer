@@ -9,6 +9,7 @@
     <Project Path="src/Blz.GetUserFiles/Blz.GetUserFiles.csproj" />
     <Project Path="src/Blz.SfnTrigger/Blz.SfnTrigger.csproj" />
     <Project Path="src/Blz.TextractAnalyzer/Blz.TextractAnalyzer.csproj" />
+    <Project Path="src/Blz.ClamavScanner/Blz.ClamavScanner.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Blz.IntegrationTests/Blz.IntegrationTests.csproj" />
