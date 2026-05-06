@@ -22,7 +22,6 @@ public class Function
     private readonly IAmazonDynamoDB _dynamoDbClient;
     private readonly string _tableName;
 
-    // A Textract által hivatalosan támogatott kiterjesztések
     private static readonly string[] SupportedTextractExtensions = { "jpg", "jpeg", "png", "pdf", "tiff", "bmp" };
 
     public Function()
@@ -34,20 +33,19 @@ public class Function
 
     public async Task<TextractAnalyzeResponse> FunctionHandler(JsonElement requestEvent, ILambdaContext context)
     {
+        var input = ParseEvent(requestEvent);
+        var userId = ExtractUserIdFromKey(input.Key ?? string.Empty);
+        string safeText = string.Empty;
+        string status = "Analyzed";
+        bool wasTruncated = false;
+
         try
         {
-            var input = ParseEvent(requestEvent);
-
             if (string.IsNullOrWhiteSpace(input.Bucket) || string.IsNullOrWhiteSpace(input.Key))
             {
                 throw new Exception("The input event must include non-empty 'bucket' and 'key' values.");
             }
 
-            var userId = ExtractUserIdFromKey(input.Key);
-            string safeText = string.Empty;
-            bool wasTruncated = false;
-
-            // 1. Fájl kiterjesztésének kinyerése a vizsgálathoz
             string extension = string.Empty;
             int lastDotIndex = input.Key.LastIndexOf('.');
             if (lastDotIndex >= 0)
@@ -55,90 +53,109 @@ public class Function
                 extension = input.Key.Substring(lastDotIndex + 1).ToLower();
             }
 
-            // 2. Csak akkor hívjuk a Textractot, ha a formátum támogatott
             if (SupportedTextractExtensions.Contains(extension))
             {
-                context.Logger.LogInformation($"Starting Textract analysis for supported file: {input.Key}");
+                context.Logger.LogInformation($"Starting Textract analysis for: {input.Key}");
                 
-                var detectRequest = new DetectDocumentTextRequest
+                try 
                 {
-                    Document = new Document
+                    var detectRequest = new DetectDocumentTextRequest
                     {
-                        S3Object = new Amazon.Textract.Model.S3Object
+                        Document = new Document
                         {
-                            Bucket = input.Bucket,
-                            Name = input.Key
+                            S3Object = new Amazon.Textract.Model.S3Object
+                            {
+                                Bucket = input.Bucket,
+                                Name = input.Key
+                            }
                         }
-                    }
-                };
+                    };
 
-                var detectResponse = await _textractClient.DetectDocumentTextAsync(detectRequest);
-                var fullText = BuildTextFromLineBlocks(detectResponse.Blocks);
-                safeText = ApplySafetyLimit(fullText, out wasTruncated);
+                    var detectResponse = await _textractClient.DetectDocumentTextAsync(detectRequest);
+                    var fullText = BuildTextFromLineBlocks(detectResponse.Blocks);
+                    safeText = ApplySafetyLimit(fullText, out wasTruncated);
+                }
+                catch (UnsupportedDocumentException ex)
+                {
+                    context.Logger.LogWarning($"Unsupported format: {ex.Message}");
+                    safeText = $"[Error: Unsupported or corrupted file format (.{extension})]";
+                    status = "AnalysisFailed";
+                }
+                catch (BadDocumentException ex)
+                {
+                    context.Logger.LogWarning($"Bad document: {ex.Message}");
+                    safeText = "[Error: The document is corrupted or unreadable]";
+                    status = "AnalysisFailed";
+                }
+                catch (DocumentTooLargeException)
+                {
+                    safeText = "[Error: Document exceeds Textract size limits]";
+                    status = "AnalysisFailed";
+                }
             }
             else
             {
-                // Ha nem támogatott (pl. .txt), kihagyjuk a Textractot, de nem dobunk hibát!
-                context.Logger.LogInformation($"Skipping Textract API call. Extension '{extension}' is not supported.");
-                safeText = $"[Text extraction skipped: Unsupported file format (.{extension})]";
+                context.Logger.LogInformation($"Skipping Textract. Extension '{extension}' not supported.");
+                safeText = $"[Text extraction skipped: .{extension} is not handled by Textract]";
             }
-
-            // 3. DynamoDB frissítése (minden esetben lefut, hogy a folyamat ne akadjon meg)
-            var updateRequest = new UpdateItemRequest
-            {
-                TableName = _tableName,
-                Key = new Dictionary<string, AttributeValue>
-                {
-                    { "userId", new AttributeValue { S = userId } },
-                    { "fileName", new AttributeValue { S = input.Key } }
-                },
-                UpdateExpression = "SET #status = :status, #extractedText = :text, #analysisDate = :analysisDate, #category = :category, #sourceBucket = :sourceBucket",
-                ExpressionAttributeNames = new Dictionary<string, string>
-                {
-                    { "#status", "status" },
-                    { "#extractedText", "extractedText" },
-                    { "#analysisDate", "analysisDate" },
-                    { "#category", "category" },
-                    { "#sourceBucket", "sourceBucket" }
-                },
-                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                {
-                    { ":status", new AttributeValue { S = "Analyzed" } },
-                    { ":text", new AttributeValue { S = safeText } },
-                    { ":analysisDate", new AttributeValue { S = DateTime.UtcNow.ToString("o") } },
-                    { ":category", new AttributeValue { S = input.Category ?? "DOCUMENT" } },
-                    { ":sourceBucket", new AttributeValue { S = input.Bucket } }
-                }
-            };
-
-            await _dynamoDbClient.UpdateItemAsync(updateRequest);
-
-            context.Logger.LogInformation($"Processing completed for '{input.Key}'. Truncated={wasTruncated}, SavedToTable='{_tableName}'.");
-
-            return new TextractAnalyzeResponse
-            {
-                Message = "Analysis completed",
-                UserId = userId,
-                FileName = input.Key,
-                Bucket = input.Bucket,
-                Category = input.Category ?? "DOCUMENT",
-                ExtractedLength = safeText.Length,
-                Truncated = wasTruncated
-            };
         }
         catch (Exception ex)
         {
-            context.Logger.LogError($"Textract analyzer failed: {ex.Message}");
-            throw;
+            context.Logger.LogError($"Failure: {ex.Message}");
+            safeText = $"[System Error: {ex.Message}]";
+            status = "SystemError";
         }
+
+        await UpdateDatabase(userId, input.Key ?? string.Empty, safeText, status, input.Category, input.Bucket, context);
+
+        return new TextractAnalyzeResponse
+        {
+            Message = status == "Analyzed" ? "Analysis completed" : "Analysis failed/skipped",
+            UserId = userId,
+            FileName = input.Key,
+            Bucket = input.Bucket,
+            Category = input.Category ?? "DOCUMENT",
+            ExtractedLength = safeText.Length,
+            Truncated = wasTruncated
+        };
+    }
+
+    private async Task UpdateDatabase(string userId, string key, string text, string status, string? category, string? bucket, ILambdaContext context)
+    {
+        var updateRequest = new UpdateItemRequest
+        {
+            TableName = _tableName,
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { "userId", new AttributeValue { S = userId } },
+                { "fileName", new AttributeValue { S = key } }
+            },
+            UpdateExpression = "SET #status = :status, #extractedText = :text, #analysisDate = :analysisDate, #category = :category, #sourceBucket = :sourceBucket",
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#status", "status" },
+                { "#extractedText", "extractedText" },
+                { "#analysisDate", "analysisDate" },
+                { "#category", "category" },
+                { "#sourceBucket", "sourceBucket" }
+            },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":status", new AttributeValue { S = status } },
+                { ":text", new AttributeValue { S = text } },
+                { ":analysisDate", new AttributeValue { S = DateTime.UtcNow.ToString("o") } },
+                { ":category", new AttributeValue { S = category ?? "DOCUMENT" } },
+                { ":sourceBucket", new AttributeValue { S = bucket ?? "unknown" } }
+            }
+        };
+
+        await _dynamoDbClient.UpdateItemAsync(updateRequest);
     }
 
     private static TextractEvent ParseEvent(JsonElement requestEvent)
     {
         if (requestEvent.ValueKind != JsonValueKind.Object)
-        {
-            throw new Exception("Invalid event format. Expected a JSON object.");
-        }
+            throw new Exception("Invalid event format.");
 
         if (requestEvent.TryGetProperty("body", out var bodyElement) && bodyElement.ValueKind == JsonValueKind.String)
         {
@@ -146,23 +163,17 @@ public class Function
             if (!string.IsNullOrWhiteSpace(body))
             {
                 var parsedBody = JsonSerializer.Deserialize<TextractEvent>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (parsedBody is not null)
-                {
-                    return parsedBody;
-                }
+                if (parsedBody is not null) return parsedBody;
             }
         }
 
-        var parsedEvent = requestEvent.Deserialize<TextractEvent>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        return parsedEvent ?? throw new Exception("Could not deserialize input event to TextractEvent.");
+        return requestEvent.Deserialize<TextractEvent>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) 
+               ?? throw new Exception("Could not deserialize input.");
     }
 
-    private static string BuildTextFromLineBlocks(List<Block>? blocks)
+    public static string BuildTextFromLineBlocks(List<Block>? blocks)
     {
-        if (blocks is null || blocks.Count == 0)
-        {
-            return string.Empty;
-        }
+        if (blocks is null || blocks.Count == 0) return string.Empty;
 
         var lines = blocks
             .Where(block => string.Equals(block.BlockType, "LINE", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(block.Text))
@@ -171,47 +182,25 @@ public class Function
         return string.Join('\n', lines);
     }
 
-    private static string ApplySafetyLimit(string text, out bool wasTruncated)
+    public static string ApplySafetyLimit(string text, out bool wasTruncated)
     {
         text ??= string.Empty;
-
         if (text.Length <= MaxExtractedTextLength)
         {
             wasTruncated = false;
             return text;
         }
-
-        var maxPrefixLength = Math.Max(0, MaxExtractedTextLength - TruncatedSuffix.Length);
         wasTruncated = true;
-        return text[..maxPrefixLength] + TruncatedSuffix;
+        return text.Substring(0, MaxExtractedTextLength - TruncatedSuffix.Length) + TruncatedSuffix;
     }
 
-    private static string ExtractUserIdFromKey(string key)
+    public static string ExtractUserIdFromKey(string key)
     {
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            return "guest";
-        }
-
+        if (string.IsNullOrWhiteSpace(key)) return "guest";
         var parts = key.Split('/', StringSplitOptions.RemoveEmptyEntries);
         return parts.Length > 1 ? parts[0] : "guest";
     }
 }
 
-public class TextractEvent
-{
-    public string? Key { get; set; }
-    public string? Bucket { get; set; }
-    public string? Category { get; set; }
-}
-
-public class TextractAnalyzeResponse
-{
-    public string? Message { get; set; }
-    public string? UserId { get; set; }
-    public string? FileName { get; set; }
-    public string? Bucket { get; set; }
-    public string? Category { get; set; }
-    public int ExtractedLength { get; set; }
-    public bool Truncated { get; set; }
-}
+public class TextractEvent { public string? Key { get; set; } public string? Bucket { get; set; } public string? Category { get; set; } }
+public class TextractAnalyzeResponse { public string? Message { get; set; } public string? UserId { get; set; } public string? FileName { get; set; } public string? Bucket { get; set; } public string? Category { get; set; } public int ExtractedLength { get; set; } public bool Truncated { get; set; } }
