@@ -1,6 +1,5 @@
 name: BLZ Project CI Pipeline
 
-# Ez a blokk mondja meg, mikor induljon el a pipeline
 on:
   push:
     branches: ["master", "main"]
@@ -11,7 +10,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # 1. FELADAT: A Backend (C#) ellenőrzése és fordítása
   build-backend:
     name: Build .NET Backend
     runs-on: ubuntu-latest
@@ -33,7 +31,77 @@ jobs:
         working-directory: ./app/backend
         run: dotnet build --no-restore --configuration Release
 
-  # 2. FELADAT: A Frontend (React) ellenőrzése és fordítása
+      - name: Install AWS Lambda Tools
+        run: dotnet tool install -g Amazon.Lambda.Tools
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Check for modified lambdas
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            check_file: 'app/backend/src/Blz.CheckFileStatus/**'
+            delete_file: 'app/backend/src/Blz.DeleteFile/**'
+            execute_download: 'app/backend/src/Blz.ExecuteDownload/**'
+            file_classifier: 'app/backend/src/Blz.FileClassifier/**'
+            get_download: 'app/backend/src/Blz.GetDownloadUrl/**'
+            get_presigned: 'app/backend/src/Blz.GetPresignedUrl/**'
+            get_user_files: 'app/backend/src/Blz.GetUserFiles/**'
+            sfn_trigger: 'app/backend/src/Blz.SfnTrigger/**'
+            textract: 'app/backend/src/Blz.TextractAnalyzer/**'
+      # --------------------------------------------------
+      - name: Deploy CheckFileStatus
+        working-directory: ./app/backend/src/Blz.CheckFileStatus
+        if: github.event_name == 'push' && steps.filter.outputs.check_file == 'true'
+        run: dotnet lambda deploy-function blz-check-file-status
+
+      - name: Deploy DeleteFile
+        working-directory: ./app/backend/src/Blz.DeleteFile
+        if: github.event_name == 'push' && steps.filter.outputs.delete_file == 'true'
+        run: dotnet lambda deploy-function blz-delete-file
+
+      - name: Deploy ExecuteDownload
+        working-directory: ./app/backend/src/Blz.ExecuteDownload
+        if: github.event_name == 'push' && steps.filter.outputs.execute_download == 'true'
+        run: dotnet lambda deploy-function blz-execute-download
+
+      - name: Deploy FileClassifier
+        working-directory: ./app/backend/src/Blz.FileClassifier
+        if: github.event_name == 'push' && steps.filter.outputs.file_classifier == 'true'
+        run: dotnet lambda deploy-function Blz-FileClassifier
+
+      - name: Deploy GetDownloadUrl
+        working-directory: ./app/backend/src/Blz.GetDownloadUrl
+        if: github.event_name == 'push' && steps.filter.outputs.get_download == 'true'
+        run: dotnet lambda deploy-function blz-get-download-url
+
+      - name: Deploy GetPresignedUrl
+        working-directory: ./app/backend/src/Blz.GetPresignedUrl
+        if: github.event_name == 'push' && steps.filter.outputs.get_presigned == 'true'
+        run: dotnet lambda deploy-function blz-get-presigned-url
+
+      - name: Deploy GetUserFiles
+        working-directory: ./app/backend/src/Blz.GetUserFiles
+        if: github.event_name == 'push' && steps.filter.outputs.get_user_files == 'true'
+        run: dotnet lambda deploy-function blz-get-user-files
+
+      - name: Deploy SfnTrigger
+        working-directory: ./app/backend/src/Blz.SfnTrigger
+        if: github.event_name == 'push' && steps.filter.outputs.sfn_trigger == 'true'
+        run: dotnet lambda deploy-function blz-sfn-trigger
+
+      - name: Deploy TextractAnalyzer
+        working-directory: ./app/backend/src/Blz.TextractAnalyzer
+        if: github.event_name == 'push' && steps.filter.outputs.textract == 'true'
+        run: dotnet lambda deploy-function blz-textract-analyzer
+
   build-frontend:
     name: Build React Frontend
     runs-on: ubuntu-latest
@@ -46,7 +114,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "npm" # <--- Szupergyorsítás: megjegyzi a csomagokat
+          cache: "npm"
           cache-dependency-path: "./app/frontend/package-lock.json"
 
       - name: Install dependencies

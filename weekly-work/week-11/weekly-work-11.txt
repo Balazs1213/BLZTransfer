@@ -4,3 +4,6 @@ Clear filter gomb bevezetése és fortned szépítése, file dashboard-on.
 Sonalint álltal jelzett hibák miatti refactorálása a FileDashboar.jsx és a hozzá tartozó css fájlba, 40 hiba javítása, pl billenytűvel is elérehtőek már a kértyák is.
 Fájl kártyákhoz hozzá adtam egy fájl méret leírást is.
 File iconokat bevezettem, a ki skártyákon a file típusának (kiterjesztésének megfelelően).
+GitHub actionst kiegészítettem egy lint-es code quality checkel
+Javítottam az actions álltal jelzett warningokat, c# fájlokban.
+Na fejlesztette a ci.yaml-t mostmár a változtatott lambdda kódok automatikusan felkerülnek az aws-re, ehhez volt szükség a script fájlra is. 

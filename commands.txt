@@ -1,5 +1,6 @@
 AWS credentials megynitása:
 code "C:\Users\User\.aws\credentials"
+bash sync-aws-keys.sh -> ezzel frissítem a GitHub-on a kulcsok tartalmát is.
 
 Repomix:
 npx repomix --ignore "**/node_modules/**,**/bin/**,**/obj/**,**/.git/**,**/dist/**" --output repomix-output.md
