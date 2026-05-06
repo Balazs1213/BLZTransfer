@@ -21,7 +21,7 @@ namespace Blz.FileClassifier
             context.Logger.LogLine($"Classifier received event: {inputEvent.GetRawText()}");
 
             // 1. Kulcs kinyerése
-            string fileKey = inputEvent.TryGetProperty("key", out var keyElem) ? keyElem.GetString() : null;
+            string? fileKey = inputEvent.TryGetProperty("key", out var keyElem) ? keyElem.GetString() : null;
 
             if (string.IsNullOrEmpty(fileKey))
             {
@@ -82,11 +82,11 @@ namespace Blz.FileClassifier
             string bucket = "default-bucket";
             if (inputEvent.TryGetProperty("cleanBucket", out var cleanBucketElem))
             {
-                bucket = cleanBucketElem.GetString();
+                bucket = cleanBucketElem.GetString() ?? bucket;
             }
             else if (inputEvent.TryGetProperty("bucket", out var bucketElem))
             {
-                bucket = bucketElem.GetString();
+                bucket = bucketElem.GetString() ?? bucket;
             }
 
             // 6. Visszatérés a Step Functions számára a megfelelő formátumban

@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: ["master", "main"]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # 1. FELADAT: A Backend (C#) ellenőrzése és fordítása
   build-backend:
@@ -42,17 +45,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm" # <--- Szupergyorsítás: megjegyzi a csomagokat
           cache-dependency-path: "./app/frontend/package-lock.json"
 
       - name: Install dependencies
         working-directory: ./app/frontend
-        run: npm ci # <--- npm install helyett: tisztább és stabilabb CI-n
+        run: npm ci
 
       - name: Code Quality Check (Lint)
         working-directory: ./app/frontend
-        run: npm run lint # <--- Most már le tud futni, mert vannak függőségek
+        run: npm run lint
 
       - name: Build frontend
         working-directory: ./app/frontend

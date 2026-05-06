@@ -38,7 +38,13 @@ public class Function
 	{
 		try
 		{
-			if (string.Equals(request?.RequestContext?.Http?.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+			if (request == null)
+			{
+				context?.Logger?.LogError("ExecuteDownload received a null request.");
+				return CreateResponse(400, new { message = "Invalid request." });
+			}
+
+			if (string.Equals(request.RequestContext?.Http?.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
 			{
 				return CreateResponse(200, new { message = "OK" });
 			}
