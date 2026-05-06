@@ -1,12 +1,23 @@
-50 MB-os venddég fájl méret beállítása, kettős véddelemmel frontend és backend oldalon is.
-Refactoráltam egyes frontend kódokat, mint az App.jsx és a FilePicker.jsx
-Clear filter gomb bevezetése és fortned szépítése, file dashboard-on.
-Sonalint álltal jelzett hibák miatti refactorálása a FileDashboar.jsx és a hozzá tartozó css fájlba, 40 hiba javítása, pl billenytűvel is elérehtőek már a kértyák is.
-Fájl kártyákhoz hozzá adtam egy fájl méret leírást is.
-File iconokat bevezettem, a ki skártyákon a file típusának (kiterjesztésének megfelelően).
-GitHub actionst kiegészítettem egy lint-es code quality checkel
-Javítottam az actions álltal jelzett warningokat, c# fájlokban.
-Na fejlesztette a ci.yaml-t mostmár a változtatott lambdda kódok automatikusan felkerülnek az aws-re, ehhez volt szükség a script fájlra is. 
-Csináltam UnitTesteket, melyeket bele tettem a ciyaml-ba hogy lefussanak a githuactions-ben, ha egy teszt hibát dob nem kerül feltöltésre az awsben.
-Npm audit parancs futtatása, majd az npm audit fixel a sebezhetőségek javítása, majd a parancs integrálása a ci.yaml fájlba.
-Step fucntion javítása, abban az esteben ha a TextractAnalyzer vagy a rekognition hibára fut, ennek megfellően frissítettem a TextarAnalyzer lambddát és írtam hozzá unit teszett is.
+-50 MB-os venddég fájl méret beállítása, kettős véddelemmel frontend és backend oldalon is.
+-Refactoráltam egyes frontend kódokat, mint az App.jsx és a FilePicker.jsx
+-Clear filter gomb bevezetése és fortned szépítése, file dashboard-on.
+-Sonalint álltal jelzett hibák miatti refactorálása a FileDashboar.jsx és a hozzá tartozó css fájlba, 40 hiba javítása, pl billenytűvel is elérehtőek már a kértyák is.
+-Fájl kártyákhoz hozzá adtam egy fájl méret leírást is.
+-File iconokat bevezettem, a ki skártyákon a file típusának (kiterjesztésének megfelelően).
+-GitHub actionst kiegészítettem egy lint-es code quality checkel
+-Javítottam az actions álltal jelzett warningokat, c# fájlokban.
+-Na fejlesztette a ci.yaml-t mostmár a változtatott lambdda kódok automatikusan felkerülnek az aws-re, ehhez volt szükség a script fájlra is. 
+-Csináltam UnitTesteket, melyeket bele tettem a ciyaml-ba hogy lefussanak a githuactions-ben, ha egy teszt hibát dob nem kerül feltöltésre az awsben.
+-Npm audit parancs futtatása, majd az npm audit fixel a sebezhetőségek javítása, majd a parancs integrálása a ci.yaml fájlba.
+-Step fucntion javítása, abban az esteben ha a TextractAnalyzer vagy a rekognition hibára fut, ennek megfellően frissítettem a TextarAnalyzer lambddát és írtam hozzá unit teszett is.
+
+
+-Megpróbáltam optimalizáni a virusazonosítást:
+A vírusellenőrzési folyamat gyorsítása érdekében több szinten is beavatkoztam: szoftveresen a clamscan parancsot a hatékonyabb clamd démonra és clamdscan párosra cseréltem, 
+hogy elkerüljem a vírusadatbázis minden egyes futáskor történő teljes újratöltését. Infrastruktúra szinten egy költségsemleges megoldással 0.5 vCPU-ról 1 vCPU-ra, a memóriát pedig 
+4 GB-ra emeltem az AWS Fargate Task beállításaiban, mivel a nagyobb számítási kapacitás elméletben felgyorsítja az adatbázis memóriába töltését.
+
+A mérések során azonban bebizonyosodott, hogy a folyamat teljes ideje (kb. 90 másodperc) nem a szkennelés, hanem a Serverless architektúra fizikai korlátai miatt magas. 
+A futási idő jelentős részét ugyanis a Cold Start (hidegindítás) teszi ki: az AWS-nek először le kell foglalnia az erőforrásokat és le kell töltenie a Docker Image-et (kb. 30 mp),
+majd a konténer indulása után a ClamAV-nak még így is fel kell olvasnia a 200+ MB-os adatbázist a lemezről (kb. 50-60 mp). Mivel a költségek minimalizálása miatt nem használunk 
+folyamatosan futó szervert, ez a „felépítési idő” a jelenlegi architektúrában technológiai adottság, nem pedig kódolási hiba.
