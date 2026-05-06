@@ -7,3 +7,11 @@ npx repomix --ignore "**/node_modules/**,**/bin/**,**/obj/**,**/.git/**,**/dist/
 
 Fronetend-bucektbe feltöltés:
 aws s3 sync dist/ s3://blz-frontend-bucket-w1srf8 --delete
+
+Fájl struktúra megkapása:
+ find . \
+  -path "*/.git" -prune -o \
+  -path "*/node_modules" -prune -o \
+  -path "*/bin" -prune -o \
+  -path "*/obj" -prune -o \
+  -print > project-structure.txt

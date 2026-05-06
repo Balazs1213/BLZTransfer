@@ -125,6 +125,10 @@ jobs:
         working-directory: ./app/frontend
         run: npm ci
 
+      - name: Security Check (npm audit)
+        working-directory: ./app/frontend
+        run: npm audit --audit-level=high
+
       - name: Code Quality Check (Lint)
         working-directory: ./app/frontend
         run: npm run lint

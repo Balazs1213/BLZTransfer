@@ -1,1 +1,0 @@
-Nagy probléma és biztonsági kockázatot vett fel, hogy az AWS S3 álltal generált presigned URL nem vonható vissza ez álltal hiába megyünk a revoke gombra az csak elrjetésssel lesz egyenértékű a háttérben még létezik, ez bztonsági kockázat amit meg kell oldanunk.

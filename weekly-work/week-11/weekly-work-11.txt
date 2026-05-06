@@ -8,3 +8,4 @@ GitHub actionst kiegészítettem egy lint-es code quality checkel
 Javítottam az actions álltal jelzett warningokat, c# fájlokban.
 Na fejlesztette a ci.yaml-t mostmár a változtatott lambdda kódok automatikusan felkerülnek az aws-re, ehhez volt szükség a script fájlra is. 
 Csináltam UnitTesteket, melyeket bele tettem a ciyaml-ba hogy lefussanak a githuactions-ben, ha egy teszt hibát dob nem kerül feltöltésre az awsben.
+Npm audit parancs futtatása, majd az npm audit fixel a sebezhetőségek javítása, majd a parancs integrálása a ci.yaml fájlba.
