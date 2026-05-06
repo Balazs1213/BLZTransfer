@@ -31,6 +31,10 @@ jobs:
         working-directory: ./app/backend
         run: dotnet build --no-restore --configuration Release
 
+      - name: Run Backend Unit Tests
+        working-directory: ./app/backend
+        run: dotnet test tests/Blz.UnitTests/Blz.UnitTests.csproj --no-build --verbosity normal
+
       - name: Install AWS Lambda Tools
         run: dotnet tool install -g Amazon.Lambda.Tools
 
