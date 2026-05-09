@@ -8,12 +8,14 @@ import { checkFileStatus } from "./api/fileApi";
 import { IoSettingsOutline } from "react-icons/io5";
 import SettingsModal from "./components/Settings/SettingsModal";
 import { translations } from "./utils/translations";
+import { UploadProvider } from "./context/UploadContext";
+import { useUploads } from "./context/useUploads";
 
 const USER_FILES_API_URL =
   "https://s2t1s0rl7g.execute-api.us-east-1.amazonaws.com/default/blz-get-user-files";
 const GUEST_FILE_STORAGE_KEY = "blz_guest_file";
 
-function App() {
+function AppContent() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [language, setLanguage] = useState(
     localStorage.getItem("appLang") || "en",
@@ -31,6 +33,8 @@ function App() {
   const [guestFileCount, setGuestFileCount] = useState(0);
   const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
   const [uploadError, setUploadError] = useState(null);
+  const { addUploadingFile, clearUploadingFiles, removeUploadingFile } =
+    useUploads();
 
   useEffect(() => {
     localStorage.setItem("appLang", language);
@@ -64,6 +68,7 @@ function App() {
     setCurrentStatus("Idle");
     setGuestFileCount(0);
     setDashboardRefreshTrigger(0);
+    clearUploadingFiles();
     localStorage.removeItem(GUEST_FILE_STORAGE_KEY);
   };
 
@@ -87,6 +92,8 @@ function App() {
   };
 
   const uploadHandler = async (file) => {
+    const uploadingFileId = addUploadingFile(file, currentUsername);
+
     setIsUploading(true);
     setProgress(10);
     setCurrentStatus("Uploading");
@@ -153,17 +160,21 @@ function App() {
         setStatusText(t("msg_successClean"));
         if (isGuest) {
           localStorage.setItem(GUEST_FILE_STORAGE_KEY, generatedFileName);
-          handleDashboardRefresh();
         }
+        removeUploadingFile(uploadingFileId);
+        handleDashboardRefresh();
         setSelectedFile(null);
       } else if (pollingStatus === "Infected") {
+        removeUploadingFile(uploadingFileId);
         setStatusText(t("msg_infected"));
       } else {
+        removeUploadingFile(uploadingFileId);
         setStatusText(t("msg_error"));
         setCurrentStatus("Error");
       }
     } catch (error) {
       console.error("Upload error:", error);
+      removeUploadingFile(uploadingFileId);
       setStatusText(t("msg_error"));
       setCurrentStatus("Error");
       setProgress(0);
@@ -323,6 +334,7 @@ function App() {
                   userId={currentUsername}
                   apiUrl={USER_FILES_API_URL}
                   t={t}
+                  refreshTrigger={dashboardRefreshTrigger}
                 />
               </div>
             </section>
@@ -348,6 +360,14 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <UploadProvider>
+      <AppContent />
+    </UploadProvider>
   );
 }
 

@@ -46,6 +46,17 @@
   background-color: #fef2f2;
 }
 
+.cardUploading {
+  border-color: #facc15;
+  background-color: #fef9c3;
+  cursor: default;
+}
+
+.cardUploading:hover {
+  transform: none;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
 .fileName {
   margin: 0;
   font-size: 1.05rem;
@@ -121,6 +132,24 @@
 
 .statusIconExpired {
   color: #ef4444;
+}
+
+.statusIconUploading {
+  color: #ca8a04;
+}
+
+.uploadingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #854d0e;
+  background: #fef3c7;
+  border: 1px solid #facc15;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  width: fit-content;
 }
 
 .labelsWrap {

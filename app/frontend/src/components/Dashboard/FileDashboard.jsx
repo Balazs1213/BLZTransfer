@@ -12,6 +12,7 @@ import FileCardGrid from "./FileCardGrid";
 import FilterSection from "./FilterSection";
 import FileModals from "./FileModals";
 import styles from "./FileDashboard.module.css";
+import { useUploads } from "../../context/useUploads";
 
 const GUEST_FILE_STORAGE_KEY = "blz_guest_file";
 
@@ -26,6 +27,7 @@ const FileDashboard = ({
   const executeDownloadBaseUrl =
     "https://h8sikvnc4a.execute-api.us-east-1.amazonaws.com/default/blz-execute-download";
   const isGuestUser = userId === "guest";
+  const { uploadingFiles } = useUploads();
 
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -287,7 +289,15 @@ const FileDashboard = ({
     return `${t(status)} (${typeLabel}) - ${formatRemaining(remainingSeconds * 1000)}`;
   };
 
-  const hasFiles = useMemo(() => files.length > 0, [files]);
+  const currentUploadingFiles = useMemo(
+    () => uploadingFiles.filter((file) => file.userId === userId),
+    [uploadingFiles, userId],
+  );
+
+  const hasFiles = useMemo(
+    () => files.length > 0 || currentUploadingFiles.length > 0,
+    [currentUploadingFiles.length, files.length],
+  );
 
   const availableCategories = useMemo(() => {
     return Array.from(
@@ -350,11 +360,16 @@ const FileDashboard = ({
     ],
   );
 
-  if (loading) {
+  const displayFiles = useMemo(
+    () => [...currentUploadingFiles, ...filteredAndSortedFiles],
+    [currentUploadingFiles, filteredAndSortedFiles],
+  );
+
+  if (loading && currentUploadingFiles.length === 0) {
     return <section className={styles.state}>{t("loadingFiles")}</section>;
   }
 
-  if (error) {
+  if (error && currentUploadingFiles.length === 0) {
     return (
       <section className={`${styles.state} ${styles.error}`}>
         {t("error")} {error}
@@ -408,7 +423,7 @@ const FileDashboard = ({
         />
 
         <FileCardGrid
-          filteredAndSortedFiles={filteredAndSortedFiles}
+          filteredAndSortedFiles={displayFiles}
           setSelectedFile={setSelectedFile}
           setFileToDelete={setFileToDelete}
           isGuestUser={isGuestUser}
@@ -453,7 +468,6 @@ const FileDashboard = ({
         confirmReplaceFile={confirmReplaceFile}
         formatDate={formatDate}
       />
-
     </>
   );
 };

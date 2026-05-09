@@ -31,32 +31,42 @@ const FileCardGrid = ({
     );
     const textPreview = extractPreview(file.extractedText);
     const cardKey = `${getFileId(file, index)}-${index}`;
-    const derivedState = getDerivedLinkState(file, index);
+    const isUploading = Boolean(file.isUploading);
+    const derivedState = isUploading
+      ? { status: "uploading" }
+      : getDerivedLinkState(file, index);
     const isActive = derivedState.status === "active";
     const isExpired = derivedState.status === "expired";
     const FileIcon = getFileIcon(file.originalName);
     const fileIconClassName = getFileIconClassName(file.originalName);
 
     const cardClasses = [styles.card];
+    if (isUploading) cardClasses.push(styles.cardUploading);
     if (isActive) cardClasses.push(styles.cardActive);
     if (isExpired) cardClasses.push(styles.cardExpired);
-    const cardProps = {
-      role: "button",
-      tabIndex: 0,
-      onClick: () => setSelectedFile(file),
-      onKeyDown: (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          setSelectedFile(file);
+    const cardProps = isUploading
+      ? {
+          "aria-label": `${file.originalName} is uploading`,
         }
-      },
-      "aria-label": `Open details for ${file.originalName}`,
-    };
+      : {
+          role: "button",
+          tabIndex: 0,
+          onClick: () => setSelectedFile(file),
+          onKeyDown: (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setSelectedFile(file);
+            }
+          },
+          "aria-label": `Open details for ${file.originalName}`,
+        };
 
     return (
       <article
         key={cardKey}
-        className={`${cardClasses.join(" ")} ${styles.cardButton}`}
+        className={`${cardClasses.join(" ")} ${
+          isUploading ? "" : styles.cardButton
+        }`}
         {...cardProps}
       >
         <h3 className={styles.fileName}>
@@ -67,130 +77,145 @@ const FileCardGrid = ({
           {file.originalName}
         </h3>
 
-        <div className={styles.statusBadge}>
-          {derivedState.status === "inactive" && (
-            <>
-              <FiClock className={styles.statusIconMuted} />
-              <span>{t("notActive")}</span>
-            </>
-          )}
+        {isUploading ? (
+          <>
+            <div className={styles.uploadingBadge}>
+              <FiClock className={styles.statusIconUploading} />
+              <span>{t("msg_uploading") || "Uploading..."}</span>
+            </div>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("sizeLabel")}:</span>{" "}
+              {formatFileSize(file.fileSize)}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className={styles.statusBadge}>
+              {derivedState.status === "inactive" && (
+                <>
+                  <FiClock className={styles.statusIconMuted} />
+                  <span>{t("notActive")}</span>
+                </>
+              )}
 
-          {isActive && (
-            <>
-              <FiCheckCircle className={styles.statusIconActive} />
-              <span>
-                {renderActiveStateLabel(
-                  "active",
-                  derivedState.type,
-                  derivedState.remainingSeconds,
-                )}
-              </span>
-            </>
-          )}
+              {isActive && (
+                <>
+                  <FiCheckCircle className={styles.statusIconActive} />
+                  <span>
+                    {renderActiveStateLabel(
+                      "active",
+                      derivedState.type,
+                      derivedState.remainingSeconds,
+                    )}
+                  </span>
+                </>
+              )}
 
-          {isExpired && (
-            <>
-              <FiXCircle className={styles.statusIconExpired} />
-              <span>{t("notActive")}</span>
-            </>
-          )}
-        </div>
+              {isExpired && (
+                <>
+                  <FiXCircle className={styles.statusIconExpired} />
+                  <span>{t("notActive")}</span>
+                </>
+              )}
+            </div>
 
-        <p className={styles.metaRow}>
-          <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
-          {formatDate(file.uploadDate)}
-        </p>
-        <p className={styles.metaRow}>
-          <span className={styles.metaLabel}>{t("sizeLabel")}:</span>{" "}
-          {formatFileSize(file.fileSize)}
-        </p>
-        <p className={styles.metaRow}>
-          <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
-          {translateStatusValue(file.status)}
-        </p>
-        <p className={styles.metaRow}>
-          <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
-          {translateCategoryValue(file.category)}
-        </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("uploadedLabel")}</span>{" "}
+              {formatDate(file.uploadDate)}
+            </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("sizeLabel")}:</span>{" "}
+              {formatFileSize(file.fileSize)}
+            </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("statusLabel")}</span>{" "}
+              {translateStatusValue(file.status)}
+            </p>
+            <p className={styles.metaRow}>
+              <span className={styles.metaLabel}>{t("categoryLabel")}</span>{" "}
+              {translateCategoryValue(file.category)}
+            </p>
 
-        {labels.length > 0 && (
-          <div className={styles.labelsWrap}>
-            {labels.map((label, labelIndex) => (
-              <span key={`${label}-${labelIndex}`} className={styles.badge}>
-                {label}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {textPreview && (
-          <blockquote className={styles.quote}>{textPreview}</blockquote>
-        )}
-
-        <div className={styles.cardActions}>
-          {isActive && !isGuestUser && (
-            <button
-              type="button"
-              className={styles.revokeBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRevoke(derivedState.fileId);
-              }}
-            >
-              {t("revoke")}
-            </button>
-          )}
-
-          {!(
-            userId === "guest" &&
-            (file.status?.toLowerCase() === "revoked" ||
-              file.status?.toLowerCase() === "not active" ||
-              file.status?.toLowerCase() === "notactive")
-          ) &&
-            isExpired && (
-              <button
-                type="button"
-                className={styles.regenerateBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedFile(file);
-                }}
-              >
-                {t("getLink")}
-              </button>
+            {labels.length > 0 && (
+              <div className={styles.labelsWrap}>
+                {labels.map((label, labelIndex) => (
+                  <span key={`${label}-${labelIndex}`} className={styles.badge}>
+                    {label}
+                  </span>
+                ))}
+              </div>
             )}
 
-          <button
-            type="button"
-            className={styles.trashBtn}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "40px",
-              height: "40px",
-              backgroundColor: "#ffe5e5",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setFileToDelete(file);
-            }}
-            aria-label={t("delete")}
-          >
-            <BsTrashFill
-              style={{
-                color: "#d9534f",
-                fontSize: "20px",
-                minWidth: "20px",
-                minHeight: "20px",
-                display: "block",
-              }}
-            />
-          </button>
-        </div>
+            {textPreview && (
+              <blockquote className={styles.quote}>{textPreview}</blockquote>
+            )}
+
+            <div className={styles.cardActions}>
+              {isActive && !isGuestUser && (
+                <button
+                  type="button"
+                  className={styles.revokeBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRevoke(derivedState.fileId);
+                  }}
+                >
+                  {t("revoke")}
+                </button>
+              )}
+
+              {!(
+                userId === "guest" &&
+                (file.status?.toLowerCase() === "revoked" ||
+                  file.status?.toLowerCase() === "not active" ||
+                  file.status?.toLowerCase() === "notactive")
+              ) &&
+                isExpired && (
+                  <button
+                    type="button"
+                    className={styles.regenerateBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(file);
+                    }}
+                  >
+                    {t("getLink")}
+                  </button>
+                )}
+
+              <button
+                type="button"
+                className={styles.trashBtn}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "40px",
+                  height: "40px",
+                  backgroundColor: "#ffe5e5",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFileToDelete(file);
+                }}
+                aria-label={t("delete")}
+              >
+                <BsTrashFill
+                  style={{
+                    color: "#d9534f",
+                    fontSize: "20px",
+                    minWidth: "20px",
+                    minHeight: "20px",
+                    display: "block",
+                  }}
+                />
+              </button>
+            </div>
+          </>
+        )}
       </article>
     );
   });
