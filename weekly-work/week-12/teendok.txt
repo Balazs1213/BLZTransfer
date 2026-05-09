@@ -1,0 +1,3 @@
+-Beszámolók
+-Xray bevezetése
+-Ábrák elkészíteés (AWS, Fronted, Pricing calculator)
