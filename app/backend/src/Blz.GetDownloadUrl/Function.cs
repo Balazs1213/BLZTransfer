@@ -125,13 +125,19 @@ public class Function
 				}
 			});
 
-			var presignedRequest = new GetPreSignedUrlRequest
-			{
-				BucketName = BucketName,
-				Key = payload.FileName,
-				Verb = HttpVerb.GET,
-				Expires = DateTime.UtcNow.AddMinutes(payload.ExpiresInMinutes)
-			};
+            string encodedFileName = Uri.EscapeDataString(payload.FileName);
+
+            var presignedRequest = new GetPreSignedUrlRequest
+            {
+                BucketName = BucketName,
+                Key = payload.FileName,
+                Verb = HttpVerb.GET,
+                Expires = DateTime.UtcNow.AddMinutes(payload.ExpiresInMinutes),
+                ResponseHeaderOverrides = new ResponseHeaderOverrides
+                {
+                    ContentDisposition = $"attachment; filename*=UTF-8''{encodedFileName}"
+                }
+            };
 
 			var downloadUrl = _s3Client.GetPreSignedURL(presignedRequest);
 			context.Logger.LogInformation($"Download URL generated successfully for userId={payload.UserId}, fileName={payload.FileName}");
